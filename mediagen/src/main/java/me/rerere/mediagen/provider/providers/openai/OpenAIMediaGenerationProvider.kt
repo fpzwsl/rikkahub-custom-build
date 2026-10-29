@@ -177,7 +177,7 @@ class OpenAIMediaGenerationProvider(
                             })
                         })
                     }
-                }
+                })
             })
         })
         put("generationConfig", buildJsonObject {
