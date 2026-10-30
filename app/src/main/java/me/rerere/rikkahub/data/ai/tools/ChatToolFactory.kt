@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import kotlinx.serialization.json.jsonObject
 import me.rerere.ai.core.Tool
+import me.rerere.ai.provider.BuiltInTools
 import me.rerere.ai.provider.Model
 import me.rerere.ai.ui.UIMessagePart
 import me.rerere.rikkahub.data.ai.mcp.McpManager

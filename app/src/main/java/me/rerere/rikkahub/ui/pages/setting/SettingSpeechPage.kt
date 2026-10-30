@@ -207,8 +207,7 @@ private fun TTSProviderList(
                     onDelete = {
                         deleteTarget = provider
                     },
-                    action = if (isSelected) {
-                    } else null,
+                    action = null,
                 )
             }
         }
@@ -498,4 +497,3 @@ private fun SpeechProviderItem(
         }
     }
 }
-
