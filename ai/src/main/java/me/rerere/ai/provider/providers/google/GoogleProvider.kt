@@ -123,7 +123,7 @@ class GoogleProvider(private val client: OkHttpClient, context: Context? = null)
                 size = params.size,
                 customHeaders = params.customHeaders,
                 customBody = params.customBody,
-            ).forEach(::emit)
+            ).forEach { item -> emit(item) }
         }
     }
 
@@ -143,7 +143,7 @@ class GoogleProvider(private val client: OkHttpClient, context: Context? = null)
                 size = params.size,
                 customHeaders = params.customHeaders,
                 customBody = params.customBody,
-            ).forEach(::emit)
+            ).forEach { item -> emit(item) }
         }
     }
 
@@ -290,7 +290,7 @@ class GoogleProvider(private val client: OkHttpClient, context: Context? = null)
                 .addHeader("Authorization", "Bearer $key")
                 .get()
                 .build()
-            client.newCall(request).await().use { response ->
+            val result = client.newCall(request).await().use { response ->
                 val body = response.body.string()
                 if (!response.isSuccessful) {
                     error("Failed to query image task: ${response.code} $body")
@@ -300,9 +300,12 @@ class GoogleProvider(private val client: OkHttpClient, context: Context? = null)
                     error("Image generation failed: ${bodyJson.imageTaskError()}")
                 }
                 if (bodyJson["candidates"] != null || bodyJson["data"] != null) {
-                    return@withTimeout parseGoogleImageResult(bodyJson)
+                    parseGoogleImageResult(bodyJson)
+                } else {
+                    null
                 }
             }
+            if (result != null) return@withTimeout result
         }
     }
 
