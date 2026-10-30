@@ -282,7 +282,8 @@ class GoogleProvider(private val client: OkHttpClient, context: Context? = null)
         key: String,
         customHeaders: List<CustomHeader>,
     ): List<ImageGenerationItem> = withTimeout(IMAGE_TASK_TIMEOUT_MS) {
-        while (true) {
+        var result: List<ImageGenerationItem>? = null
+        while (result == null) {
             delay(IMAGE_TASK_POLL_INTERVAL_MS)
             val request = Request.Builder()
                 .url(buildImageTaskUrl(providerSetting, taskId))
@@ -290,7 +291,7 @@ class GoogleProvider(private val client: OkHttpClient, context: Context? = null)
                 .addHeader("Authorization", "Bearer $key")
                 .get()
                 .build()
-            val result = client.newCall(request).await().use { response ->
+            result = client.newCall(request).await().use { response ->
                 val body = response.body.string()
                 if (!response.isSuccessful) {
                     error("Failed to query image task: ${response.code} $body")
@@ -305,8 +306,8 @@ class GoogleProvider(private val client: OkHttpClient, context: Context? = null)
                     null
                 }
             }
-            if (result != null) return@withTimeout result
         }
+        checkNotNull(result)
     }
 
     @OptIn(ExperimentalEncodingApi::class)
