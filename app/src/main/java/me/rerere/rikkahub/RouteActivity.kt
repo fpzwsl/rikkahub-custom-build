@@ -68,18 +68,15 @@ import me.rerere.rikkahub.data.event.AppEventBus
 import me.rerere.rikkahub.data.repository.MediaCreationRepository
 import me.rerere.rikkahub.service.MediaCreationForegroundService
 import me.rerere.rikkahub.ui.activity.SafeModeActivity
-import me.rerere.rikkahub.ui.components.ui.TTSController
 import me.rerere.rikkahub.ui.context.LocalASRState
 import me.rerere.rikkahub.ui.context.LocalNavController
 import me.rerere.rikkahub.ui.context.LocalSettings
 import me.rerere.rikkahub.ui.context.LocalSharedTransitionScope
-import me.rerere.rikkahub.ui.context.LocalTTSState
 import me.rerere.rikkahub.ui.context.LocalToaster
 import me.rerere.rikkahub.ui.context.Navigator
 import me.rerere.rikkahub.ui.hooks.readBooleanPreference
 import me.rerere.rikkahub.ui.hooks.readStringPreference
 import me.rerere.rikkahub.ui.hooks.rememberCustomAsrState
-import me.rerere.rikkahub.ui.hooks.rememberCustomTtsState
 import me.rerere.rikkahub.ui.pages.assistant.AssistantPage
 import me.rerere.rikkahub.ui.pages.assistant.detail.AssistantBasicPage
 import me.rerere.rikkahub.ui.pages.assistant.detail.AssistantDetailPage
@@ -275,16 +272,12 @@ class RouteActivity : ComponentActivity() {
     fun AppRoutes() {
         val toastState = rememberToasterState()
         val settings by settingsStore.settingsFlow.collectAsStateWithLifecycle()
-        val tts = rememberCustomTtsState()
         val asr = rememberCustomAsrState()
         val eventBus = koinInject<AppEventBus>()
-        LaunchedEffect(tts) {
+        LaunchedEffect(eventBus) {
             eventBus.events.collect { event ->
-                when (event) {
-                    is AppEvent.Speak -> tts.speak(event.text)
-                    is AppEvent.OpenUsageAccessSettings -> this@RouteActivity.openUsageAccessSettings()
-                    is AppEvent.ChatGenerationUpdate -> Unit // 由 ChatNotificationManager 消费
-                    is AppEvent.ChatGenerationEnded -> Unit // 由 ChatNotificationManager 消费
+                if (event is AppEvent.OpenUsageAccessSettings) {
+                    this@RouteActivity.openUsageAccessSettings()
                 }
             }
         }
@@ -315,10 +308,8 @@ class RouteActivity : ComponentActivity() {
                 LocalSharedTransitionScope provides this,
                 LocalSettings provides settings,
                 LocalToaster provides toastState,
-                LocalTTSState provides tts,
                 LocalASRState provides asr,
             ) {
-                TTSController()
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -593,16 +584,6 @@ class RouteActivity : ComponentActivity() {
                             }
                         }
                     )
-                    if (BuildConfig.DEBUG) {
-                        Text(
-                            text = "[开发模式]",
-                            modifier = Modifier
-                                .align(Alignment.TopCenter)
-                                .padding(top = 4.dp),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.error.copy(alpha = 0.7f)
-                        )
-                    }
                     AnimatedVisibility(
                         visible = migrationState is MigrationState.Migrating,
                         enter = fadeIn(),

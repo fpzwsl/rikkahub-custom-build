@@ -5,8 +5,10 @@ import androidx.compose.runtime.Composable
 import me.rerere.rikkahub.ui.theme.presets.AutumnThemePreset
 import me.rerere.rikkahub.ui.theme.presets.BlackThemePreset
 import me.rerere.rikkahub.ui.theme.presets.ClaudeThemePreset
+import me.rerere.rikkahub.ui.theme.presets.DeepSeekThemePreset
 import me.rerere.rikkahub.ui.theme.presets.MinimalThemePreset
 import me.rerere.rikkahub.ui.theme.presets.OceanThemePreset
+import me.rerere.rikkahub.ui.theme.presets.RightCodeThemePreset
 import me.rerere.rikkahub.ui.theme.presets.SakuraThemePreset
 import me.rerere.rikkahub.ui.theme.presets.SpringThemePreset
 
@@ -30,6 +32,8 @@ val PresetThemes by lazy {
         BlackThemePreset,
         MinimalThemePreset,
         ClaudeThemePreset,
+        DeepSeekThemePreset,
+        RightCodeThemePreset,
     )
 }
 

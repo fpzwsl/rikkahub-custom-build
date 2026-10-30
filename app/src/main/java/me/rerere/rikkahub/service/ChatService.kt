@@ -5,9 +5,7 @@ import android.util.Log
 import androidx.annotation.StringRes
 import androidx.core.net.toUri
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineStart
-import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
@@ -186,9 +184,6 @@ class ChatService(
     private fun onSessionGenerationFinished(session: ConversationSession, cause: Throwable?) {
         // 取消只来自停止（已自行暂停）或删除，这里再暂停会盖掉停止后用户发送时恢复的队列
         if (cause != null && cause !is CancellationException) session.messageQueue.pause()
-        if (session.state.value.isAwaitingToolApproval) {
-            session.messageQueue.failReplyWaiters(context.getString(R.string.chat_page_voice_tool_approval))
-        }
         appScope.launch { dispatchNextQueuedMessage(session.id) }
     }
 
@@ -391,25 +386,6 @@ class ChatService(
         }
     }
 
-    /** Enqueue immediately; the result belongs to this item even after edits or later turns. */
-    fun enqueueVoiceMessage(conversationId: Uuid, text: String): Deferred<String?> {
-        val session = sessionManager.getOrCreate(conversationId)
-        val reply = CompletableDeferred<String?>()
-        synchronized(session) {
-            check(text.isNotBlank()) { context.getString(R.string.chat_page_voice_empty) }
-            check(!session.messageQueue.state.value.paused || session.messageQueue.state.value.messages.isEmpty()) {
-                context.getString(R.string.chat_page_voice_resume_queue)
-            }
-            check(!session.state.value.isAwaitingToolApproval) {
-                context.getString(R.string.chat_page_voice_tools_before_resume)
-            }
-            if (session.messageQueue.state.value.messages.isEmpty()) session.messageQueue.resume()
-            session.messageQueue.enqueue(listOf(UIMessagePart.Text(text)), reply = reply)
-            dispatchNextQueuedMessage(conversationId)
-        }
-        return reply
-    }
-
     private fun dispatchNextQueuedMessage(conversationId: Uuid): Job? {
         val session = sessionManager.get(conversationId) ?: return null
         synchronized(session) {
@@ -437,7 +413,6 @@ class ChatService(
                 val processedContent = queued.parts.replaceUserRegexes(assistant)
 
                 // 添加消息到列表
-                val previousIds = session.state.value.currentMessages.mapTo(HashSet()) { it.id }
                 session.update {
                     it.copy(
                         messageNodes = it.messageNodes + UIMessage(
@@ -450,28 +425,14 @@ class ChatService(
                 session.submittingMessage = null
 
                 // 开始补全
-                val result = if (queued.answer) runTurn(session) else null
-
-                queued.reply?.completeWith(runCatching {
-                    check(result != TurnResult.Failed) { context.getString(R.string.chat_page_voice_generation_failed) }
-                    check((result as? TurnResult.Finished)?.reason !is AgentFinishReason.AwaitingApproval) {
-                        context.getString(R.string.chat_page_voice_tool_approval)
-                    }
-                    session.state.value.currentMessages
-                        .filter { it.id !in previousIds && it.role == MessageRole.ASSISTANT }
-                        .joinToString("\n") { it.toText() }
-                })
-                // Voice owns playback, including when its observer has already left the page.
-                // The ordinary autoplay collector must not read a late voice reply again.
-                if (queued.reply == null) _generationDoneFlow.emit(conversationId)
+                if (queued.answer) runTurn(session)
+                _generationDoneFlow.emit(conversationId)
             } catch (e: Exception) {
-                queued.reply?.completeExceptionally(e)
                 e.printStackTrace()
                 reportFailure(session, e, R.string.error_title_send_message)
             }
         }
         job.invokeOnCompletion { cause ->
-            if (cause != null) queued.reply?.completeExceptionally(cause)
             synchronized(session) {
                 if (session.submittingMessage?.id == queued.id) session.submittingMessage = null
             }
@@ -619,6 +580,9 @@ class ChatService(
             // 它会挂起也可能失败，期间或失败后不能还指着上一轮的回复
             session.replyMessageId.value = history.lastOrNull()?.takeIf { it.role == MessageRole.ASSISTANT }?.id
 
+            // 在组装上下文前就锁定本轮模型。上下文准备可能挂起，期间用户可以切换
+            // 下一轮模型；顶部仍应显示这次回答实际使用的模型。
+            session.generationModel.value = settings.getChatModelOf(conversation)
             val turn = requestFactory.createContext(settings, conversation)
             // 这一轮用哪个模型就此固定：之后在聊天页切换模型只影响下一轮，顶部仍显示正在回答的模型
             session.generationModel.value = turn.model

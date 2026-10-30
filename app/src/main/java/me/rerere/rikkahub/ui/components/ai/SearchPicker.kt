@@ -52,7 +52,6 @@ import androidx.graphics.shapes.RoundedPolygon
 import androidx.compose.ui.util.fastForEachIndexed
 import me.rerere.ai.provider.BuiltInTools
 import me.rerere.ai.provider.Model
-import me.rerere.ai.provider.supportsBuiltInSearch
 import me.rerere.hugeicons.HugeIcons
 import me.rerere.hugeicons.stroke.AiSearch02
 import me.rerere.hugeicons.stroke.ArrowLeft01
@@ -63,7 +62,6 @@ import me.rerere.hugeicons.stroke.Settings03
 import me.rerere.rikkahub.R
 import me.rerere.rikkahub.Screen
 import me.rerere.rikkahub.data.datastore.Settings
-import me.rerere.rikkahub.data.datastore.findProvider
 import me.rerere.rikkahub.ui.components.ui.AutoAIIcon
 import me.rerere.rikkahub.ui.context.LocalNavController
 import me.rerere.rikkahub.ui.pages.setting.SearchAbilityTagLine
@@ -177,11 +175,10 @@ private fun SearchPicker(
 ) {
     val navBackStack = LocalNavController.current
 
-    val provider = model?.findProvider(settings.providers)
-    val supportsBuiltInSearch = provider?.supportsBuiltInSearch == true
     val currentMode = searchModeOf(enableSearch, model)
-    // 模型支持内置搜索，或已开启内置搜索（后者保证残留状态也能被关闭）时显示模型搜索选项
-    val showModelSearch = model != null && (supportsBuiltInSearch || currentMode == SearchMode.BUILT_IN)
+    // 内置搜索由用户在聊天页手动控制。模型设置中的工具开关仍作为初始值，
+    // 具体请求是否支持该工具由对应的提供商协议处理。
+    val showModelSearch = model != null
     val modes = buildList {
         add(SearchMode.OFF)
         add(SearchMode.LOCAL)

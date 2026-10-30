@@ -251,6 +251,14 @@ internal class InteractionsAPI(
             }
         }
 
+        // Interactions API requires this opt-in when client function tools and
+        // server-side tools (Google Search / URL Context) are used together.
+        if (useFunctionTools && builtInTools.isNotEmpty()) {
+            put("tool_config", buildJsonObject {
+                put("include_server_side_tool_invocations", true)
+            })
+        }
+
         // safety_settings 只在 Vertex 上可用，Gemini API 的 Interactions 会直接拒绝该参数
     }.mergeCustomBody(params.customBody)
 

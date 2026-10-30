@@ -4,6 +4,23 @@ import me.rerere.ai.provider.ProviderSetting
 import me.rerere.ai.provider.QuotaQuery
 import kotlin.uuid.Uuid
 
+/** Previously bundled relay entries that should disappear from existing settings as well. */
+internal val REMOVED_DEFAULT_PROVIDER_IDS = setOf(
+    Uuid.parse("1b1395ed-b702-4aeb-8bc1-b681c4456953"), // AiHubMix
+    Uuid.parse("2a05506f-3a59-450a-a493-33a82bc85a81"), // APIMart
+    Uuid.parse("56a94d29-c88b-41c5-8e09-38a7612d6cf8"), // 硅基流动
+    Uuid.parse("d5734028-d39b-4d41-9841-fd648d65440e"), // OpenRouter
+    Uuid.parse("386e0f29-8228-4512-affe-8fd8add82d88"), // Vercel AI Gateway
+    Uuid.parse("f76cae46-069a-4334-ab8e-224e4979e58c"), // 阿里云百炼
+    Uuid.parse("3dfd6f9b-f9d9-417f-80c1-ff8d77184191"), // 火山引擎
+    Uuid.parse("f4f8870e-82d3-495b-9b64-d58e508b3b2c"), // 阶跃星辰
+    Uuid.parse("da93779f-3956-48cc-82ef-67bb482eaaf7"), // 302.AI
+    Uuid.parse("ef5d149b-8e34-404b-818c-6ec242e5c3c5"), // 腾讯Hunyuan
+    Uuid.parse("aecf04fd-cb5c-4582-aed2-e8bf393923fd"), // 随想AI网关
+    Uuid.parse("afbc54ad-807e-4455-9594-7d7a546356ad"), // MaruCode
+    Uuid.parse("a2bafe83-eaf8-47bf-a8c7-3dd82d89f637"), // MIMO
+)
+
 val DEFAULT_PROVIDERS = listOf(
     ProviderSetting.OpenAI(
         id = Uuid.parse("1eeea727-9ee5-4cae-93e6-6fb01a4d051e"),
@@ -18,29 +35,6 @@ val DEFAULT_PROVIDERS = listOf(
         apiKey = "",
         enabled = true,
         builtIn = true
-    ),
-    ProviderSetting.OpenAI(
-        id = Uuid.parse("1b1395ed-b702-4aeb-8bc1-b681c4456953"),
-        name = "AiHubMix",
-        baseUrl = "https://aihubmix.com/v1",
-        apiKey = "",
-        enabled = true,
-        builtIn = true,
-    ),
-    ProviderSetting.OpenAI(
-        id = Uuid.parse("2a05506f-3a59-450a-a493-33a82bc85a81"),
-        name = "APIMart",
-        baseUrl = "https://api.apimart.ai/v1",
-        apiKey = "",
-        enabled = false,
-        builtIn = true,
-    ),
-    ProviderSetting.OpenAI(
-        id = Uuid.parse("56a94d29-c88b-41c5-8e09-38a7612d6cf8"),
-        name = "硅基流动",
-        baseUrl = "https://api.siliconflow.cn/v1",
-        apiKey = "",
-        builtIn = true,
     ),
     ProviderSetting.OpenAI(
         id = Uuid.parse("f099ad5b-ef03-446d-8e78-7e36787f780b"),
@@ -68,74 +62,9 @@ val DEFAULT_PROVIDERS = listOf(
         )
     ),
     ProviderSetting.OpenAI(
-        id = Uuid.parse("d5734028-d39b-4d41-9841-fd648d65440e"),
-        name = "OpenRouter",
-        baseUrl = "https://openrouter.ai/api/v1",
-        apiKey = "",
-        builtIn = true,
-        quotaQuery = QuotaQuery(
-            enabled = true,
-            url = "{{baseUrl}}/credits",
-            resultPath = "data.total_credits - data.total_usage",
-        )
-    ),
-    ProviderSetting.OpenAI(
-        id = Uuid.parse("386e0f29-8228-4512-affe-8fd8add82d88"),
-        name = "Vercel AI Gateway",
-        baseUrl = "https://ai-gateway.vercel.sh/v1",
-        apiKey = "",
-        enabled = false,
-        builtIn = true,
-        quotaQuery = QuotaQuery(
-            enabled = true,
-            url = "{{baseUrl}}/credits",
-            resultPath = "balance",
-        )
-    ),
-    ProviderSetting.OpenAI(
-        id = Uuid.parse("f76cae46-069a-4334-ab8e-224e4979e58c"),
-        name = "阿里云百炼",
-        baseUrl = "https://dashscope.aliyuncs.com/compatible-mode/v1",
-        apiKey = "",
-        enabled = false,
-        builtIn = true
-    ),
-    ProviderSetting.OpenAI(
-        id = Uuid.parse("3dfd6f9b-f9d9-417f-80c1-ff8d77184191"),
-        name = "火山引擎",
-        baseUrl = "https://ark.cn-beijing.volces.com/api/v3",
-        apiKey = "",
-        enabled = false,
-        builtIn = true
-    ),
-    ProviderSetting.OpenAI(
         id = Uuid.parse("3bc40dc1-b11a-46fa-863b-6306971223be"),
         name = "智谱AI开放平台",
         baseUrl = "https://open.bigmodel.cn/api/paas/v4",
-        apiKey = "",
-        enabled = false,
-        builtIn = true
-    ),
-    ProviderSetting.OpenAI(
-        id = Uuid.parse("f4f8870e-82d3-495b-9b64-d58e508b3b2c"),
-        name = "阶跃星辰",
-        baseUrl = "https://api.stepfun.com/v1",
-        apiKey = "",
-        enabled = false,
-        builtIn = true
-    ),
-    ProviderSetting.OpenAI(
-        id = Uuid.parse("da93779f-3956-48cc-82ef-67bb482eaaf7"),
-        name = "302.AI",
-        baseUrl = "https://api.302.ai/v1",
-        apiKey = "",
-        enabled = false,
-        builtIn = true,
-    ),
-    ProviderSetting.OpenAI(
-        id = Uuid.parse("ef5d149b-8e34-404b-818c-6ec242e5c3c5"),
-        name = "腾讯Hunyuan",
-        baseUrl = "https://tokenhub.tencentmaas.com/v1",
         apiKey = "",
         enabled = false,
         builtIn = true
@@ -149,35 +78,10 @@ val DEFAULT_PROVIDERS = listOf(
         builtIn = true,
         useResponseApi = true,
     ),
-    ProviderSetting.OpenAI(
-        id = Uuid.parse("aecf04fd-cb5c-4582-aed2-e8bf393923fd"),
-        name = "随想AI网关",
-        baseUrl = "https://sui-xiang.com/v1",
-        apiKey = "",
-        enabled = false,
-        builtIn = true,
-    ),
-    ProviderSetting.OpenAI(
-        id = Uuid.parse("afbc54ad-807e-4455-9594-7d7a546356ad"),
-        name = "MaruCode",
-        baseUrl = "https://api.muteki.site/v1",
-        apiKey = "",
-        enabled = false,
-        builtIn = true,
-        useResponseApi = true,
-    ),
     ProviderSetting.Claude(
         id = Uuid.parse("b4deabea-20fb-4101-a74c-65679c7e4754"),
         name = "MiniMax",
         baseUrl = "https://api.minimaxi.com/anthropic/v1",
-        apiKey = "",
-        enabled = false,
-        builtIn = true,
-    ),
-    ProviderSetting.OpenAI(
-        id = Uuid.parse("a2bafe83-eaf8-47bf-a8c7-3dd82d89f637"),
-        name = "MIMO",
-        baseUrl = "https://api.xiaomimimo.com/v1",
         apiKey = "",
         enabled = false,
         builtIn = true,

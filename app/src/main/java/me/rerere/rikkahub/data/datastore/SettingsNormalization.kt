@@ -6,7 +6,10 @@ internal fun Settings.normalized(): Settings =
 
 // 补齐缺失的内置提供商/助手/TTS，内置提供商的描述信息始终以代码里的为准
 internal fun Settings.withBuiltInDefaults(): Settings {
-    var providers = this.providers.ifEmpty { DEFAULT_PROVIDERS }.toMutableList()
+    var providers = this.providers
+        .filterNot { provider -> provider.builtIn && provider.id in REMOVED_DEFAULT_PROVIDER_IDS }
+        .ifEmpty { DEFAULT_PROVIDERS }
+        .toMutableList()
     DEFAULT_PROVIDERS.forEach { defaultProvider ->
         if (providers.none { it.id == defaultProvider.id }) {
             providers.add(defaultProvider.copyProvider())

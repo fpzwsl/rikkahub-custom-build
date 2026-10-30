@@ -106,7 +106,7 @@ class RikkaHubApp : Application() {
         // Extract builtin skills from assets after install/update
         extractBuiltinSkills()
 
-        // Load models.dev data for model capability matching, then refresh it in background
+        // Load local or bundled models.dev data for model capability matching
         updateModelsDev()
 
         // Start WebServer if enabled in settings

@@ -97,7 +97,6 @@ object ToolUIRegistry {
         ScrapeWebToolUI,
         GetTimeInfoToolUI,
         ClipboardToolUI,
-        TextToSpeechToolUI,
         GetScreenTimeToolUI,
         CalendarQueryToolUI,
         CalendarCreateToolUI,

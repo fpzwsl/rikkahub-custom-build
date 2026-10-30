@@ -1,0 +1,91 @@
+package me.rerere.rikkahub.ui.theme.presets
+
+import androidx.compose.material3.Text
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
+import me.rerere.rikkahub.R
+import me.rerere.rikkahub.ui.theme.PresetTheme
+
+/** DeepSeek 风格：白色画布、冷灰表面与明亮的蓝色强调。 */
+val DeepSeekThemePreset by lazy {
+    PresetTheme(
+        id = "deepseek",
+        name = { Text(stringResource(R.string.theme_name_deepseek)) },
+        standardLight = lightColorScheme(
+            primary = Color(0xFF4663F1),
+            onPrimary = Color(0xFFFFFFFF),
+            primaryContainer = Color(0xFFEEF2FF),
+            onPrimaryContainer = Color(0xFF304BC7),
+            secondary = Color(0xFF576175),
+            onSecondary = Color(0xFFFFFFFF),
+            secondaryContainer = Color(0xFFEDF0F5),
+            onSecondaryContainer = Color(0xFF343D50),
+            tertiary = Color(0xFF6554A4),
+            onTertiary = Color(0xFFFFFFFF),
+            tertiaryContainer = Color(0xFFF0EBFF),
+            onTertiaryContainer = Color(0xFF493781),
+            error = Color(0xFFBA1A1A),
+            onError = Color(0xFFFFFFFF),
+            errorContainer = Color(0xFFFFDAD6),
+            onErrorContainer = Color(0xFF93000A),
+            background = Color(0xFFFFFFFF),
+            onBackground = Color(0xFF202329),
+            surface = Color(0xFFFFFFFF),
+            onSurface = Color(0xFF202329),
+            surfaceVariant = Color(0xFFF0F2F7),
+            onSurfaceVariant = Color(0xFF616977),
+            outline = Color(0xFF858D9A),
+            outlineVariant = Color(0xFFE2E5EC),
+            scrim = Color(0xFF000000),
+            inverseSurface = Color(0xFF2D3038),
+            inverseOnSurface = Color(0xFFF5F6FA),
+            inversePrimary = Color(0xFFB4C2FF),
+            surfaceDim = Color(0xFFE9ECF2),
+            surfaceBright = Color(0xFFFFFFFF),
+            surfaceContainerLowest = Color(0xFFFFFFFF),
+            surfaceContainerLow = Color(0xFFF8F9FB),
+            surfaceContainer = Color(0xFFF3F5F9),
+            surfaceContainerHigh = Color(0xFFEDF0F6),
+            surfaceContainerHighest = Color(0xFFE7EBF2),
+        ),
+        standardDark = darkColorScheme(
+            primary = Color(0xFFAAB9FF),
+            onPrimary = Color(0xFF132775),
+            primaryContainer = Color(0xFF293C80),
+            onPrimaryContainer = Color(0xFFDFE5FF),
+            secondary = Color(0xFFBEC6D8),
+            onSecondary = Color(0xFF283143),
+            secondaryContainer = Color(0xFF353F53),
+            onSecondaryContainer = Color(0xFFE0E6F4),
+            tertiary = Color(0xFFCDBDFA),
+            onTertiary = Color(0xFF35265D),
+            tertiaryContainer = Color(0xFF4B3C75),
+            onTertiaryContainer = Color(0xFFEADDFF),
+            error = Color(0xFFFFB4AB),
+            onError = Color(0xFF690005),
+            errorContainer = Color(0xFF93000A),
+            onErrorContainer = Color(0xFFFFDAD6),
+            background = Color(0xFF15161A),
+            onBackground = Color(0xFFE6E8EE),
+            surface = Color(0xFF15161A),
+            onSurface = Color(0xFFE6E8EE),
+            surfaceVariant = Color(0xFF30343F),
+            onSurfaceVariant = Color(0xFFB4BBCB),
+            outline = Color(0xFF8B93A5),
+            outlineVariant = Color(0xFF363B48),
+            scrim = Color(0xFF000000),
+            inverseSurface = Color(0xFFE6E8EE),
+            inverseOnSurface = Color(0xFF2D3038),
+            inversePrimary = Color(0xFF4663F1),
+            surfaceDim = Color(0xFF15161A),
+            surfaceBright = Color(0xFF3A3D47),
+            surfaceContainerLowest = Color(0xFF101115),
+            surfaceContainerLow = Color(0xFF1C1E24),
+            surfaceContainer = Color(0xFF23252D),
+            surfaceContainerHigh = Color(0xFF2B2E38),
+            surfaceContainerHighest = Color(0xFF343844),
+        ),
+    )
+}

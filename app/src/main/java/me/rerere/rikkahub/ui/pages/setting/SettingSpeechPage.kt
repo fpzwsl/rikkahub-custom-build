@@ -7,14 +7,11 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -22,7 +19,6 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -53,7 +49,6 @@ import me.rerere.hugeicons.HugeIcons
 import me.rerere.hugeicons.stroke.Add01
 import me.rerere.hugeicons.stroke.Delete01
 import me.rerere.hugeicons.stroke.Mic01
-import me.rerere.hugeicons.stroke.StopCircle
 import me.rerere.hugeicons.stroke.VolumeHigh
 import me.rerere.rikkahub.R
 import me.rerere.rikkahub.data.datastore.DEFAULT_SYSTEM_TTS_ID
@@ -67,7 +62,6 @@ import me.rerere.rikkahub.ui.components.ui.PagerTabs
 import me.rerere.rikkahub.ui.components.ui.Tag
 import me.rerere.rikkahub.ui.components.ui.TagType
 import me.rerere.rikkahub.ui.components.ui.longPressReorder
-import me.rerere.rikkahub.ui.context.LocalTTSState
 import me.rerere.rikkahub.ui.pages.setting.components.ASRProviderConfigure
 import me.rerere.rikkahub.ui.pages.setting.components.ProviderEditSheet
 import me.rerere.rikkahub.ui.pages.setting.components.ProviderTypeSheet
@@ -84,7 +78,6 @@ private enum class SpeechTab(
     override val icon: ImageVector,
     @param:StringRes private val labelRes: Int,
 ) : PagerTab {
-    TTS(HugeIcons.VolumeHigh, R.string.speech_tab_tts),
     ASR(HugeIcons.Mic01, R.string.speech_tab_asr);
 
     override val label: String
@@ -94,7 +87,6 @@ private enum class SpeechTab(
 @Composable
 fun SettingSpeechPage(vm: SettingVM = koinViewModel()) {
     val settings by vm.settings.collectAsStateWithLifecycle()
-    var editingTTSProvider by remember { mutableStateOf<TTSProviderSetting?>(null) }
     var editingASRProvider by remember { mutableStateOf<ASRProviderSetting?>(null) }
     val pagerState = rememberPagerState { SpeechTab.entries.size }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
@@ -109,22 +101,12 @@ fun SettingSpeechPage(vm: SettingVM = koinViewModel()) {
                     BackButton()
                 },
                 actions = {
-                    when (SpeechTab.entries[pagerState.targetPage]) {
-                        SpeechTab.TTS -> AddTTSProviderButton {
-                            vm.updateSettings { latest ->
-                                latest.copy(
-                                    ttsProviders = listOf(it) + latest.ttsProviders
-                                )
-                            }
-                        }
-
-                        SpeechTab.ASR -> AddASRProviderButton {
-                            vm.updateSettings { latest ->
-                                latest.copy(
-                                    asrProviders = listOf(it) + latest.asrProviders,
-                                    selectedASRProviderId = latest.selectedASRProviderId ?: it.id
-                                )
-                            }
+                    AddASRProviderButton {
+                        vm.updateSettings { latest ->
+                            latest.copy(
+                                asrProviders = listOf(it) + latest.asrProviders,
+                                selectedASRProviderId = latest.selectedASRProviderId ?: it.id
+                            )
                         }
                     }
                 },
@@ -154,36 +136,12 @@ fun SettingSpeechPage(vm: SettingVM = koinViewModel()) {
                     .fillMaxWidth()
                     .weight(1f),
             ) { page ->
-                when (SpeechTab.entries[page]) {
-                    SpeechTab.TTS -> TTSProviderList(
-                        settings = settings,
-                        onUpdateSettings = vm::updateSettings,
-                        onEdit = { editingTTSProvider = it },
-                    )
-
-                    SpeechTab.ASR -> ASRProviderList(
-                        settings = settings,
-                        onUpdateSettings = vm::updateSettings,
-                        onEdit = { editingASRProvider = it },
-                    )
-                }
+                ASRProviderList(
+                    settings = settings,
+                    onUpdateSettings = vm::updateSettings,
+                    onEdit = { editingASRProvider = it },
+                )
             }
-        }
-    }
-
-    editingTTSProvider?.let { provider ->
-        ProviderEditSheet(
-            title = stringResource(R.string.setting_tts_page_edit_provider),
-            initial = provider,
-            confirmText = stringResource(R.string.chat_page_save),
-            onConfirm = { edited ->
-                vm.updateSettings { latest ->
-                    latest.copy(ttsProviders = latest.ttsProviders.map { if (it.id == provider.id) edited else it })
-                }
-            },
-            onDismiss = { editingTTSProvider = null },
-        ) { value, onValueChange, modifier ->
-            TTSProviderConfigure(setting = value, onValueChange = onValueChange, modifier = modifier)
         }
     }
 
@@ -250,7 +208,6 @@ private fun TTSProviderList(
                         deleteTarget = provider
                     },
                     action = if (isSelected) {
-                        { TTSTestButton() }
                     } else null,
                 )
             }
@@ -542,44 +499,3 @@ private fun SpeechProviderItem(
     }
 }
 
-// 用当前选中的 TTS 念一句测试文本，播放中再点一次停止
-@Composable
-private fun TTSTestButton() {
-    val tts = LocalTTSState.current
-    val isSpeaking by tts.isSpeaking.collectAsState()
-    val isAvailable by tts.isAvailable.collectAsState()
-    if (!isAvailable) return
-
-    val testText = stringResource(R.string.setting_tts_page_test_text)
-    val height = ButtonDefaults.ExtraSmallContainerHeight
-    Button(
-        onClick = {
-            if (!isSpeaking) {
-                tts.speak(testText)
-            } else {
-                tts.stop()
-            }
-        },
-        // 按下时圆角收紧
-        shapes = ButtonDefaults.shapesFor(height),
-        modifier = Modifier.heightIn(min = height),
-        colors = if (isSpeaking) {
-            ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.error,
-                contentColor = MaterialTheme.colorScheme.onError,
-            )
-        } else ButtonDefaults.buttonColors(),
-        contentPadding = ButtonDefaults.contentPaddingFor(height, hasStartIcon = true),
-    ) {
-        Icon(
-            imageVector = if (isSpeaking) HugeIcons.StopCircle else HugeIcons.VolumeHigh,
-            contentDescription = null,
-            modifier = Modifier.size(ButtonDefaults.iconSizeFor(height)),
-        )
-        Spacer(Modifier.width(ButtonDefaults.iconSpacingFor(height)))
-        Text(
-            text = if (isSpeaking) stringResource(R.string.stop) else stringResource(R.string.test_tts),
-            style = ButtonDefaults.textStyleFor(height),
-        )
-    }
-}

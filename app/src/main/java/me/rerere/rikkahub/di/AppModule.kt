@@ -20,7 +20,6 @@ import me.rerere.rikkahub.utils.EmojiUtils
 import me.rerere.rikkahub.utils.JsonInstant
 import me.rerere.rikkahub.utils.SoundEffectPlayer
 import me.rerere.rikkahub.web.WebServerManager
-import me.rerere.tts.provider.TTSManager
 import org.koin.dsl.module
 
 val appModule = module {
@@ -31,7 +30,7 @@ val appModule = module {
     }
 
     single {
-        LocalTools(get(), get(), get(), get())
+        LocalTools(get(), get())
     }
 
     single {
@@ -42,9 +41,6 @@ val appModule = module {
         EmojiUtils.loadEmoji(get())
     }
 
-    single {
-        TTSManager(get())
-    }
 
     single {
         Firebase.crashlytics

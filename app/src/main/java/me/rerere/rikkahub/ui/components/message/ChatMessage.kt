@@ -165,12 +165,6 @@ fun ChatMessage(
                     loading = loading,
                     modifier = Modifier.weight(1f)
                 )
-                ChatMessageUserAvatar(
-                    message = message,
-                    avatar = settings.userAvatar,
-                    nickname = settings.userNickname,
-                    modifier = Modifier.weight(1f)
-                )
             }
         }
         CompositionLocalProvider(
@@ -219,11 +213,6 @@ fun ChatMessage(
                     message = message,
                     onRegenerate = onRegenerate,
                     onEdit = onEdit,
-                    node = node,
-                    onUpdate = onUpdate,
-                    onOpenActionSheet = {
-                        showActionsSheet = true
-                    },
                     onTranslate = onTranslate,
                     onClearTranslation = onClearTranslation
                 )

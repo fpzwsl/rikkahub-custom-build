@@ -1116,10 +1116,12 @@
   <string name="theme_name_autumn">Autumn Yellow</string>
   <string name="theme_name_black">Neutral Black</string>
   <string name="theme_name_claude">Claude</string>
+  <string name="theme_name_deepseek">DeepSeek</string>
   <string name="theme_name_minimal">Minimal White</string>
   <string name="theme_name_ocean">Ocean Blue</string>
   <string name="theme_name_sakura">Sakura Pink</string>
   <string name="theme_name_spring">Meadow Green</string>
+  <string name="theme_name_right_code">Right Code</string>
   <string name="title_activity_safe_mode">Safe Mode</string>
   <string name="tools_warning">The current model does not have tool calling enabled. Please enable the model\'s tool capabilities in the settings to use features like search/MCP.</string>
   <string name="translate">Translate</string>

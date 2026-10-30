@@ -11,6 +11,8 @@ import kotlinx.coroutines.flow.buffer
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonArrayBuilder
@@ -31,6 +33,10 @@ import me.rerere.ai.core.MessageRole
 import me.rerere.ai.core.ReasoningLevel
 import me.rerere.ai.core.TokenUsage
 import me.rerere.ai.provider.BuiltInTools
+import me.rerere.ai.provider.CustomBody
+import me.rerere.ai.provider.CustomHeader
+import me.rerere.ai.provider.ImageEditParams
+import me.rerere.ai.provider.ImageGenerationParams
 import me.rerere.ai.provider.Modality
 import me.rerere.ai.provider.Model
 import me.rerere.ai.provider.ModelAbility
@@ -47,6 +53,7 @@ import me.rerere.ai.provider.providers.groupPartsByToolBoundary
 import me.rerere.ai.provider.stream.SseEvent
 import me.rerere.ai.registry.ModelRegistry
 import me.rerere.ai.ui.GoogleThoughtMetadata
+import me.rerere.ai.ui.ImageGenerationItem
 import me.rerere.ai.ui.ServerToolMetadata
 import me.rerere.ai.ui.ServerToolProtocol
 import me.rerere.ai.ui.ServerToolStatus
@@ -78,10 +85,16 @@ import okhttp3.Response
 import okhttp3.sse.EventSource
 import okhttp3.sse.EventSourceListener
 import org.apache.commons.text.StringEscapeUtils
+import java.io.File
+import kotlin.io.encoding.Base64
+import kotlin.io.encoding.ExperimentalEncodingApi
 import kotlin.time.Clock
 import kotlin.uuid.Uuid
 
 private const val TAG = "GoogleProvider"
+private const val IMAGE_TASK_POLL_INTERVAL_MS = 5_000L
+private const val IMAGE_TASK_TIMEOUT_MS = 10 * 60 * 1_000L
+private val IMAGE_FAILURE_STATUSES = setOf("failed", "expired", "canceled")
 
 class GoogleProvider(private val client: OkHttpClient, context: Context? = null) : Provider<ProviderSetting.Google> {
     private val keyRoulette = if (context != null) KeyRoulette.lru(context) else KeyRoulette.default()
@@ -95,8 +108,265 @@ class GoogleProvider(private val client: OkHttpClient, context: Context? = null)
             keyRoulette.next(providerSetting.apiKey, providerSetting.id.toString())
         }
 
+    override suspend fun generateImage(
+        providerSetting: ProviderSetting.Google,
+        params: ImageGenerationParams,
+    ): Flow<ImageGenerationItem> = flow {
+        repeat(params.numOfImages.coerceAtLeast(1)) {
+            submitGoogleImageTask(
+                providerSetting = providerSetting,
+                modelId = params.model.modelId,
+                prompt = params.prompt,
+                images = emptyList(),
+                size = params.size,
+                customHeaders = params.customHeaders,
+                customBody = params.customBody,
+            ).forEach(::emit)
+        }
+    }
+
+    override suspend fun editImage(
+        providerSetting: ProviderSetting.Google,
+        params: ImageEditParams,
+    ): Flow<ImageGenerationItem> = flow {
+        require(params.images.isNotEmpty()) { "At least one image is required" }
+        repeat(params.numOfImages.coerceAtLeast(1)) {
+            submitGoogleImageTask(
+                providerSetting = providerSetting,
+                modelId = params.model.modelId,
+                prompt = params.prompt,
+                images = params.images,
+                size = params.size,
+                customHeaders = params.customHeaders,
+                customBody = params.customBody,
+            ).forEach(::emit)
+        }
+    }
+
+    @OptIn(ExperimentalEncodingApi::class)
+    private suspend fun submitGoogleImageTask(
+        providerSetting: ProviderSetting.Google,
+        modelId: String,
+        prompt: String,
+        images: List<String>,
+        size: String,
+        customHeaders: List<CustomHeader>,
+        customBody: List<CustomBody>,
+    ): List<ImageGenerationItem> = withContext(Dispatchers.IO) {
+        val key = keyRoulette.next(providerSetting.apiKey, providerSetting.id.toString())
+        val mirror = providerSetting.usesAsyncImageApi()
+        val requestBody = buildImageRequestBody(
+            prompt = prompt,
+            images = images,
+            size = size,
+            mirror = mirror,
+        ).mergeCustomBody(customBody)
+        val url = buildUrl(
+            providerSetting = providerSetting,
+            path = if (providerSetting.vertexAI) {
+                "publishers/google/models/$modelId:generateContent"
+            } else {
+                "models/$modelId:generateContent"
+            },
+        )
+        val requestBuilder = Request.Builder()
+            .url(url)
+            .headers(providerSetting.mergeCustomHeaders(customHeaders))
+            .addHeader("Content-Type", "application/json")
+            .post(json.encodeToString(requestBody).toRequestBody("application/json".toMediaType()))
+            .configureReferHeaders(providerSetting.baseUrl)
+
+        val request = if (mirror) {
+            requestBuilder
+                .addHeader("Authorization", "Bearer $key")
+                .addHeader("x-goog-api-key", key)
+                .build()
+        } else {
+            transformRequest(providerSetting, requestBuilder.build())
+        }
+
+        Log.i(TAG, "generateImage: ${json.encodeToString(requestBody)}")
+        client.newCall(request).await().use { response ->
+            val body = response.body.string()
+            if (!response.isSuccessful) {
+                error("Failed to generate image: ${response.code} $body")
+            }
+            val bodyJson = json.parseToJsonElement(body).jsonObject
+            val taskId = bodyJson["task_id"]?.jsonPrimitive?.contentOrNull
+            if (taskId == null) {
+                parseGoogleImageResult(bodyJson)
+            } else if (bodyJson["status"]?.jsonPrimitive?.contentOrNull in IMAGE_FAILURE_STATUSES) {
+                error("Image generation failed: ${bodyJson.imageTaskError()}")
+            } else {
+                pollGoogleImageTask(providerSetting, taskId, key, customHeaders)
+            }
+        }
+    }
+
+    @OptIn(ExperimentalEncodingApi::class)
+    private fun buildImageRequestBody(
+        prompt: String,
+        images: List<String>,
+        size: String,
+        mirror: Boolean,
+    ): JsonObject = buildJsonObject {
+        if (mirror) put("async", true)
+        putJsonArray("contents") {
+            add(buildJsonObject {
+                put("role", "user")
+                putJsonArray("parts") {
+                    add(buildJsonObject { put("text", prompt) })
+                    images.forEach { path ->
+                        val file = File(path)
+                        require(file.exists()) { "Image file does not exist: $path" }
+                        val mimeType = file.imageMimeType()
+                        val data = Base64.encode(file.readBytes())
+                        add(buildJsonObject {
+                            put(if (mirror) "inline_data" else "inlineData", buildJsonObject {
+                                put(if (mirror) "mime_type" else "mimeType", mimeType)
+                                put("data", data)
+                            })
+                        })
+                    }
+                }
+            })
+        }
+        put("generationConfig", buildJsonObject {
+            if (mirror) {
+                put("imageConfig", buildGeminiImageConfig(size))
+            } else {
+                putJsonArray("responseModalities") {
+                    add(JsonPrimitive("IMAGE"))
+                }
+            }
+        })
+    }
+
+    private fun buildGeminiImageConfig(size: String): JsonObject = buildJsonObject {
+        val dimensions = size.split('x', limit = 2)
+            .takeIf { it.size == 2 }
+            ?.mapNotNull(String::toIntOrNull)
+        val width = dimensions?.getOrNull(0)
+        val height = dimensions?.getOrNull(1)
+        val aspectRatio = when {
+            width == null || height == null || width <= 0 || height <= 0 -> null
+            width == height -> "1:1"
+            width == 1792 && height == 1024 -> "16:9"
+            width == 1024 && height == 1792 -> "9:16"
+            width * 3 == height * 2 -> "2:3"
+            width * 2 == height * 3 -> "3:2"
+            width * 4 == height * 3 -> "3:4"
+            width * 3 == height * 4 -> "4:3"
+            width * 9 == height * 16 -> "9:16"
+            width * 16 == height * 9 -> "16:9"
+            else -> null
+        }
+        if (aspectRatio != null) put("aspectRatio", aspectRatio)
+        if (dimensions != null) {
+            val longestSide = maxOf(width ?: 0, height ?: 0)
+            put("imageSize", when {
+                longestSide >= 3840 -> "4K"
+                longestSide >= 2048 -> "2K"
+                else -> "1K"
+            })
+        }
+    }
+
+    private suspend fun pollGoogleImageTask(
+        providerSetting: ProviderSetting.Google,
+        taskId: String,
+        key: String,
+        customHeaders: List<CustomHeader>,
+    ): List<ImageGenerationItem> = withTimeout(IMAGE_TASK_TIMEOUT_MS) {
+        while (true) {
+            delay(IMAGE_TASK_POLL_INTERVAL_MS)
+            val request = Request.Builder()
+                .url(buildImageTaskUrl(providerSetting, taskId))
+                .headers(providerSetting.mergeCustomHeaders(customHeaders))
+                .addHeader("Authorization", "Bearer $key")
+                .get()
+                .build()
+            client.newCall(request).await().use { response ->
+                val body = response.body.string()
+                if (!response.isSuccessful) {
+                    error("Failed to query image task: ${response.code} $body")
+                }
+                val bodyJson = json.parseToJsonElement(body).jsonObject
+                if (bodyJson["status"]?.jsonPrimitive?.contentOrNull in IMAGE_FAILURE_STATUSES) {
+                    error("Image generation failed: ${bodyJson.imageTaskError()}")
+                }
+                if (bodyJson["candidates"] != null || bodyJson["data"] != null) {
+                    return@withTimeout parseGoogleImageResult(bodyJson)
+                }
+            }
+        }
+    }
+
+    @OptIn(ExperimentalEncodingApi::class)
+    private suspend fun parseGoogleImageResult(body: JsonObject): List<ImageGenerationItem> {
+        val candidates = body["candidates"]?.jsonArray ?: return emptyList()
+        return candidates.flatMap { candidate ->
+            candidate.jsonObject["content"]?.jsonObject?.get("parts")?.jsonArray.orEmpty()
+                .mapNotNull { part ->
+                    val partObject = part.jsonObject
+                    val inlineData = partObject["inlineData"]?.jsonObject
+                    if (inlineData != null) {
+                        val mimeType = inlineData["mimeType"]?.jsonPrimitive?.contentOrNull ?: "image/png"
+                        val data = inlineData["data"]?.jsonPrimitive?.contentOrNull
+                            ?: return@mapNotNull null
+                        ImageGenerationItem(data = data, mimeType = mimeType)
+                    } else {
+                        val url = partObject["text"]?.jsonPrimitive?.contentOrNull
+                            ?.takeIf { it.startsWith("http://") || it.startsWith("https://") }
+                            ?: return@mapNotNull null
+                        downloadGeneratedImage(url)
+                    }
+                }
+        }
+    }
+
+    @OptIn(ExperimentalEncodingApi::class)
+    private suspend fun downloadGeneratedImage(url: String): ImageGenerationItem {
+        client.newCall(Request.Builder().url(url).get().build()).await().use { response ->
+            if (!response.isSuccessful) {
+                error("Failed to download generated image: ${response.code} ${response.body.string()}")
+            }
+            val body = response.body
+            return ImageGenerationItem(
+                data = Base64.encode(body.bytes()),
+                mimeType = body.contentType()?.toString() ?: "image/png",
+            )
+        }
+    }
+
+    private fun buildImageTaskUrl(
+        providerSetting: ProviderSetting.Google,
+        taskId: String,
+    ): HttpUrl {
+        val baseUrl = providerSetting.baseUrl.trimEnd('/')
+        val root = baseUrl.removeSuffix("/v1beta")
+        return "$root/v1/tasks/$taskId".toHttpUrl()
+    }
+
+    private fun JsonObject.imageTaskError(): String {
+        val error = this["error"] ?: return "Unknown error"
+        return (error as? JsonPrimitive)?.contentOrNull ?: error.toString()
+    }
+
+    private fun File.imageMimeType(): String = when (extension.lowercase()) {
+        "jpg", "jpeg" -> "image/jpeg"
+        "webp" -> "image/webp"
+        "gif" -> "image/gif"
+        else -> "image/png"
+    }
+
     // Interactions API 目前只有 Gemini Developer API 提供，Vertex AI 仍走 generateContent
     private fun ProviderSetting.Google.usesInteractionsApi() = useInteractionsApi && !vertexAI
+
+    private fun ProviderSetting.Google.usesAsyncImageApi(): Boolean {
+        val host = baseUrl.toHttpUrl().host
+        return !vertexAI && host != "generativelanguage.googleapis.com"
+    }
 
     private fun buildUrl(providerSetting: ProviderSetting.Google, path: String): HttpUrl {
         return if (!providerSetting.vertexAI) {

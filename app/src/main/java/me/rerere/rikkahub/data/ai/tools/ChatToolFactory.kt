@@ -28,10 +28,10 @@ private const val TOOL_OUTPUT_PREVIEW_CHARS = 4 * 1024
 private val TOOLS_WITHOUT_OUTPUT_TRUNCATION = setOf("search_web")
 
 internal fun shouldUseExternalWebSearch(assistant: Assistant, model: Model): Boolean {
-    // External search is an explicit assistant setting. A model may also expose its own
-    // search tool; keeping both available preserves the web search behavior from 2.4.0
-    // and lets the model or the user choose the appropriate source.
-    return assistant.enableWebSearch
+    // Built-in search and the local search_web function are alternative search backends.
+    // Keeping both in the same request makes older Gemini APIs reject the tool set, and
+    // the built-in backend already covers web search when it is enabled on the model.
+    return assistant.enableWebSearch && BuiltInTools.Search !in model.tools
 }
 
 class InvalidMcpServerNamesException(val names: List<String>) :

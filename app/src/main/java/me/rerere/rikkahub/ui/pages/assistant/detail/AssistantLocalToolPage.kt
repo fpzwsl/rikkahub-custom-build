@@ -33,7 +33,6 @@ import me.rerere.hugeicons.stroke.Clock01
 import me.rerere.hugeicons.stroke.JavaScript
 import me.rerere.hugeicons.stroke.MessageQuestion
 import me.rerere.hugeicons.stroke.SmartPhone01
-import me.rerere.hugeicons.stroke.VolumeHigh
 import me.rerere.rikkahub.R
 import me.rerere.rikkahub.data.ai.tools.local.LocalToolOption
 import me.rerere.rikkahub.data.model.Assistant
@@ -191,12 +190,6 @@ private fun AssistantLocalToolContent(
                 icon = HugeIcons.ClipboardPaste,
                 title = R.string.assistant_page_local_tools_clipboard_title,
                 description = R.string.assistant_page_local_tools_clipboard_desc,
-            )
-            toolItem(
-                option = LocalToolOption.Tts,
-                icon = HugeIcons.VolumeHigh,
-                title = R.string.assistant_page_local_tools_tts_title,
-                description = R.string.assistant_page_local_tools_tts_desc,
             )
             toolItem(
                 option = LocalToolOption.AskUser,

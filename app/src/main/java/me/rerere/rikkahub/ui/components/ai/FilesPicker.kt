@@ -67,7 +67,6 @@ import me.rerere.hugeicons.stroke.Package01
 import me.rerere.hugeicons.stroke.PaintBoard
 import me.rerere.hugeicons.stroke.Settings02
 import me.rerere.hugeicons.stroke.Video01
-import me.rerere.hugeicons.stroke.Voice
 import me.rerere.rikkahub.R
 import me.rerere.rikkahub.Screen
 import me.rerere.rikkahub.data.ai.mcp.McpManager
@@ -123,7 +122,6 @@ internal fun FilesPicker(
     onPickAudio: () -> Unit,
     onPickFile: () -> Unit,
     onSketch: () -> Unit,
-    onStartVoiceMode: (() -> Unit)? = null,
 ) {
     val settings = LocalSettings.current
     val provider = chatModel?.findProvider(providers = settings.providers)
@@ -210,9 +208,6 @@ internal fun FilesPicker(
                             add(AttachmentAction(HugeIcons.MusicNote03, R.string.audio, onPickAudio))
                         }
                         add(AttachmentAction(HugeIcons.Files02, R.string.upload_file, onPickFile))
-                        onStartVoiceMode?.let { start ->
-                            add(AttachmentAction(HugeIcons.Voice, R.string.chat_page_voice_title, start))
-                        }
                     }
                 )
 

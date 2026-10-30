@@ -12,7 +12,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -21,7 +20,6 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import kotlin.math.roundToInt
 import me.rerere.rikkahub.R
 import me.rerere.rikkahub.data.datastore.BackgroundEffectType
 import me.rerere.rikkahub.data.datastore.DisplaySetting
@@ -40,9 +38,6 @@ import org.koin.androidx.compose.koinViewModel
 fun SettingPreferencesGeneralPage(vm: SettingVM = koinViewModel()) {
     val settings by vm.settings.collectAsStateWithLifecycle()
     var displaySetting by remember(settings) { mutableStateOf(settings.displaySetting) }
-    var ttsPlaybackSpeed by remember(settings.defaultTTSPlaybackSpeed) {
-        mutableFloatStateOf(settings.defaultTTSPlaybackSpeed)
-    }
 
     fun updateDisplaySetting(setting: DisplaySetting) {
         displaySetting = setting
@@ -215,56 +210,6 @@ fun SettingPreferencesGeneralPage(vm: SettingVM = koinViewModel()) {
                 }
             }
 
-            item {
-                CardGroup(
-                    title = { Text(stringResource(R.string.setting_page_tts_settings)) },
-                ) {
-                    formItem(
-                        headlineContent = { Text(stringResource(R.string.setting_tts_page_default_playback_speed)) },
-                        supportingContent = { Text(stringResource(R.string.setting_tts_page_default_playback_speed_description)) },
-                        trailingContent = { CardGroupValue("x${"%.1f".format(ttsPlaybackSpeed)}") },
-                    ) {
-                        Slider(
-                            value = ttsPlaybackSpeed,
-                            onValueChange = {
-                                ttsPlaybackSpeed = (it * 10).roundToInt() / 10f
-                            },
-                            onValueChangeFinished = {
-                                vm.updateSettings {
-                                    it.copy(defaultTTSPlaybackSpeed = ttsPlaybackSpeed)
-                                }
-                            },
-                            valueRange = 0.5f..2.0f,
-                            steps = 14,
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                    }
-                    switchItem(
-                        checked = displaySetting.ttsOnlyReadQuoted,
-                        onCheckedChange = { updateDisplaySetting(displaySetting.copy(ttsOnlyReadQuoted = it)) },
-                        supportingContent = { Text(stringResource(R.string.setting_display_page_tts_only_read_quoted_desc)) },
-                        headlineContent = { Text(stringResource(R.string.setting_display_page_tts_only_read_quoted_title)) },
-                    )
-                    switchItem(
-                        checked = displaySetting.ttsOnlyReadOutsideBrackets,
-                        onCheckedChange = { updateDisplaySetting(displaySetting.copy(ttsOnlyReadOutsideBrackets = it)) },
-                        supportingContent = { Text(stringResource(R.string.setting_display_page_tts_read_outside_brackets_desc)) },
-                        headlineContent = { Text(stringResource(R.string.setting_display_page_tts_read_outside_brackets_title)) },
-                    )
-                    switchItem(
-                        checked = displaySetting.autoPlayTTSAfterGeneration,
-                        onCheckedChange = { updateDisplaySetting(displaySetting.copy(autoPlayTTSAfterGeneration = it)) },
-                        supportingContent = { Text(stringResource(R.string.setting_display_page_auto_play_tts_desc)) },
-                        headlineContent = { Text(stringResource(R.string.setting_display_page_auto_play_tts_title)) },
-                    )
-                    switchItem(
-                        checked = displaySetting.voiceModeListenWhileReplying,
-                        onCheckedChange = { updateDisplaySetting(displaySetting.copy(voiceModeListenWhileReplying = it)) },
-                        supportingContent = { Text(stringResource(R.string.setting_display_page_voice_listen_while_replying_desc)) },
-                        headlineContent = { Text(stringResource(R.string.setting_display_page_voice_listen_while_replying_title)) },
-                    )
-                }
-            }
         }
     }
 }

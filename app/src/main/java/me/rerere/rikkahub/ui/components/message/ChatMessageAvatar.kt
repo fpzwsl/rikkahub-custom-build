@@ -14,42 +14,11 @@ import androidx.compose.ui.unit.dp
 import me.rerere.ai.core.MessageRole
 import me.rerere.ai.provider.Model
 import me.rerere.ai.ui.UIMessage
-import me.rerere.ai.ui.isEmptyUIMessage
 import me.rerere.rikkahub.R
 import me.rerere.rikkahub.data.model.Assistant
-import me.rerere.rikkahub.data.model.Avatar
 import me.rerere.rikkahub.ui.components.ui.AutoAIIcon
 import me.rerere.rikkahub.ui.components.ui.UIAvatar
 import me.rerere.rikkahub.ui.context.LocalSettings
-
-@Composable
-fun ChatMessageUserAvatar(
-    message: UIMessage,
-    avatar: Avatar,
-    nickname: String,
-    modifier: Modifier = Modifier,
-) {
-    val settings = LocalSettings.current
-    if (message.role == MessageRole.USER && !message.parts.isEmptyUIMessage() && settings.displaySetting.showUserAvatar) {
-        Row(
-            modifier = modifier,
-            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = nickname.ifEmpty { stringResource(R.string.user_default_name) },
-                style = MaterialTheme.typography.labelLargeEmphasized,
-                maxLines = 1,
-            )
-            UIAvatar(
-                name = nickname,
-                modifier = Modifier.size(28.dp),
-                value = avatar,
-                loading = false,
-            )
-        }
-    }
-}
 
 @Composable
 fun ChatMessageAssistantAvatar(

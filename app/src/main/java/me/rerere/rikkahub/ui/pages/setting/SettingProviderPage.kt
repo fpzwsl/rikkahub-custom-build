@@ -692,11 +692,6 @@ private fun ProviderItem(
                             )
                         )
                     }
-                    if (provider.name == "AiHubMix") {
-                        Tag(type = TagType.INFO) {
-                            Text("10% 优惠")
-                        }
-                    }
                 }
             }
             ItemActionMenu(

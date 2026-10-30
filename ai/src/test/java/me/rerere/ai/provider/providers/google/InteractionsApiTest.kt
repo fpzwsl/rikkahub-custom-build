@@ -91,6 +91,11 @@ class InteractionsApiTest {
         })
         assertEquals("save_weather", tools[0]["name"]!!.jsonPrimitive.content)
 
+        assertTrue(
+            body["tool_config"]!!.jsonObject["include_server_side_tool_invocations"]!!
+                .jsonPrimitive.boolean
+        )
+
         // Gemini API 的 Interactions 不接受 safety_settings
         assertFalse(body.containsKey("safety_settings"))
     }

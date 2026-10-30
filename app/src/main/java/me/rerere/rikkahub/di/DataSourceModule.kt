@@ -241,7 +241,7 @@ val dataSourceModule = module {
     }
 
     single {
-        ModelsDevUpdater(context = get(), client = get())
+        ModelsDevUpdater(context = get())
     }
 
     single {
