@@ -109,12 +109,14 @@ class GoogleProvider(private val client: OkHttpClient, context: Context? = null)
         }
 
     override suspend fun generateImage(
-        providerSetting: ProviderSetting.Google,
+        providerSetting: ProviderSetting,
         params: ImageGenerationParams,
     ): Flow<ImageGenerationItem> = flow {
+        val googleProviderSetting = providerSetting as? ProviderSetting.Google
+            ?: error("Expected Google provider setting")
         repeat(params.numOfImages.coerceAtLeast(1)) {
             submitGoogleImageTask(
-                providerSetting = providerSetting,
+                providerSetting = googleProviderSetting,
                 modelId = params.model.modelId,
                 prompt = params.prompt,
                 images = emptyList(),
@@ -126,13 +128,15 @@ class GoogleProvider(private val client: OkHttpClient, context: Context? = null)
     }
 
     override suspend fun editImage(
-        providerSetting: ProviderSetting.Google,
+        providerSetting: ProviderSetting,
         params: ImageEditParams,
     ): Flow<ImageGenerationItem> = flow {
+        val googleProviderSetting = providerSetting as? ProviderSetting.Google
+            ?: error("Expected Google provider setting")
         require(params.images.isNotEmpty()) { "At least one image is required" }
         repeat(params.numOfImages.coerceAtLeast(1)) {
             submitGoogleImageTask(
-                providerSetting = providerSetting,
+                providerSetting = googleProviderSetting,
                 modelId = params.model.modelId,
                 prompt = params.prompt,
                 images = params.images,
