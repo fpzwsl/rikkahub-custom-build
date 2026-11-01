@@ -1,0 +1,37 @@
+name: Daily Code Scanning Alert Check
+
+on:
+  schedule:
+    # UTC 时间每天 0 点（北京时间 8:00）自动运行
+    - cron: '0 0 * * *'
+  workflow_dispatch: # 支持在 Actions 页面手动触发
+
+permissions:
+  security-events: read
+  contents: read
+
+jobs:
+  check-alerts:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Fetch open code scanning alerts
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "正在拉取未关闭的代码扫描告警..."
+          ALERTS=$(gh api "repos/${{ github.repository }}/code-scanning/alerts?state=open&per_page=100")
+          
+          COUNT=$(echo "$ALERTS" | jq 'length')
+          echo "当前未关闭的告警数量：${COUNT}"
+
+          if [ "$COUNT" -gt 0 ]; then
+            echo "### ⚠️ 发现 ${COUNT} 个待处理安全告警" >> $GITHUB_STEP_SUMMARY
+            echo "$ALERTS" | jq -r '.[] | "- [\(.rule.id)] \(.rule.description) (\(.most_recent_instance.location.path):\(.most_recent_instance.location.start_line))"' >> $GITHUB_STEP_SUMMARY
+            # 如果不希望有告警时中断流程，可注释掉下一行；若希望告警直接失败阻断，则保留
+            # exit 1
+          else
+            echo "### ✅ 代码扫描无未关闭安全告警" >> $GITHUB_STEP_SUMMARY
+          fi
