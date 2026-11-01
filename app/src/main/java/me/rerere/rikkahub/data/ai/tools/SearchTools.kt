@@ -107,9 +107,10 @@ fun createSearchTools(settings: Settings, deepSeekApiKey: String? = null): Set<T
                         service.scrapingParameters(options)
                     },
                     execute = {
-                        val options = settings.searchServices.getOrElse(
-                            index = settings.searchServiceSelected,
-                            defaultValue = { SearchServiceOptions.DEFAULT })
+                        // Keep DeepSeek's model-search mode on the same provider for
+                        // follow-up page extraction; otherwise scraping silently falls
+                        // back to the user's unrelated local search service.
+                        val options = selectedOptions()
                         val service = SearchService.getService(options)
                         val result = service.scrape(
                             params = it.jsonObject,

@@ -49,9 +49,23 @@ val ProviderSetting.supportsBuiltInSearch: Boolean
     }
 
 fun ProviderSetting.supportsBuiltInSearch(model: Model): Boolean =
-    supportsBuiltInSearch && when (this) {
-        is ProviderSetting.OpenAI -> true
-        else -> true
+    when (this) {
+        // DeepSeek exposes web search through the provider's search backend. The chat
+        // request still uses the model-search switch, while ChatToolFactory routes it
+        // to DeepSeek's search endpoint instead of adding a second generic search tool.
+        is ProviderSetting.OpenAI -> {
+            if (baseUrl.contains("deepseek.com", ignoreCase = true)) {
+                true
+            } else if (useResponseApi) {
+                true
+            } else {
+                // OpenAI's Chat Completions web search is only available on the
+                // dedicated search-preview models and is enabled with web_search_options.
+                model.modelId.contains("search-preview", ignoreCase = true)
+            }
+        }
+
+        else -> supportsBuiltInSearch
     }
 
 @Serializable

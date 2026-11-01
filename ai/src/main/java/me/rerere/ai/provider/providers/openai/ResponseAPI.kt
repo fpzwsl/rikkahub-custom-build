@@ -322,7 +322,7 @@ class ResponseAPI(
                         when (builtInTool) {
                             BuiltInTools.Search -> if (capabilities.supportsWebSearch) {
                                 add(buildJsonObject {
-                                    put("type", "web_search")
+                                    put("type", capabilities.webSearchToolType)
                                 })
                             }
 
@@ -527,7 +527,7 @@ class ResponseAPI(
             put("id", tool.toolCallId)
             put("status", tool.status.toOpenAIStatus())
             tool.input?.let { input ->
-                if (tool.toolName.removeSuffix("_call") == "web_search") {
+                if (tool.toolName.removeSuffix("_call").removeSuffix("_preview") == "web_search") {
                     put("action", input)
                 } else if (input is JsonObject) {
                     input.forEach { (key, value) -> put(key, value) }
@@ -787,7 +787,7 @@ internal fun JsonObject.toOpenAIServerTool(): UIMessagePart.ServerTool {
         .takeUnless { it.isEmpty() }
     return UIMessagePart.ServerTool(
         toolCallId = get("id")?.jsonPrimitive?.contentOrNull ?: "",
-        toolName = type.removeSuffix("_call"),
+        toolName = type.removeSuffix("_call").removeSuffix("_preview"),
         input = input,
         output = get("output") ?: get("result"),
         status = get("status")?.jsonPrimitive?.contentOrNull.toServerToolStatus(),
@@ -830,6 +830,9 @@ internal data class ResponseProviderCapabilities(
     // 非推理模型也请求加密推理内容：不保存会话时，自带推理的模型要靠它接上多轮推理
     val alwaysIncludeEncryptedContent: Boolean = false,
     val supportsWebSearch: Boolean = true,
+    // The legacy name is the broadest compatibility choice for OpenAI-compatible
+    // gateways. The official OpenAI endpoint is selected explicitly below.
+    val webSearchToolType: String = "web_search",
     // 推理档位对应的 reasoning.effort（参数依次是档位、模型 id），返回 null 时不带
     val reasoningEffort: (
         ReasoningLevel,
@@ -840,6 +843,10 @@ internal data class ResponseProviderCapabilities(
 internal fun resolveResponseProviderCapabilities(host: String): ResponseProviderCapabilities {
     return when (host) {
         "api.deepseek.com" -> ResponseProviderCapabilities(supportsWebSearch = false)
+        // OpenAI's public Responses API documents web_search_preview. Custom hosts
+        // keep the legacy web_search shape because many reverse proxies still
+        // implement that earlier tool name.
+        "api.openai.com" -> ResponseProviderCapabilities(webSearchToolType = "web_search_preview")
         "ark.cn-beijing.volces.com" -> ResponseProviderCapabilities(
             supportsReasoningSummary = false,
             supportEncryptedContent = false

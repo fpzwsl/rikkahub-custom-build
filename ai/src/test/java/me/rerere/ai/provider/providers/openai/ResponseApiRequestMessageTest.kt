@@ -436,8 +436,34 @@ class ResponseApiRequestMessageTest {
         assertTrue("tools should exist", tools != null)
         val types = tools!!.map { it.jsonObject["type"]?.jsonPrimitive?.content }
         assertTrue("function tool should not be dropped", types.contains("function"))
-        assertTrue("built-in web_search should be present", types.contains("web_search"))
+        assertTrue("built-in web_search should be present", types.contains("web_search_preview"))
         assertEquals(2, tools.size)
+    }
+
+    @Test
+    fun `deepseek responses endpoint disables unsupported web search`() {
+        val capabilities = resolveResponseProviderCapabilities("api.deepseek.com")
+        val requestBody = api.buildRequestBody(
+            capabilities = capabilities,
+            messages = listOf(UIMessage.user("search")),
+            params = createToolParams(builtInTools = setOf(BuiltInTools.Search)),
+            stream = false,
+        )
+        assertFalse(requestBody.containsKey("tools"))
+    }
+
+    @Test
+    fun `custom responses proxy uses legacy web search tool name`() {
+        val requestBody = api.buildRequestBody(
+            capabilities = resolveResponseProviderCapabilities("proxy.example.com"),
+            messages = listOf(UIMessage.user("search")),
+            params = createToolParams(builtInTools = setOf(BuiltInTools.Search)),
+            stream = false,
+        )
+        assertEquals(
+            "web_search",
+            requestBody["tools"]!!.jsonArray.single().jsonObject["type"]?.jsonPrimitive?.content,
+        )
     }
 
     @Test

@@ -31,6 +31,7 @@ import me.rerere.ai.core.InputSchema
 import me.rerere.ai.core.MessageRole
 import me.rerere.ai.core.ReasoningLevel
 import me.rerere.ai.core.TokenUsage
+import me.rerere.ai.provider.BuiltInTools
 import me.rerere.ai.provider.Modality
 import me.rerere.ai.provider.Model
 import me.rerere.ai.provider.ModelAbility
@@ -255,6 +256,16 @@ class ChatCompletionsAPI(
                         put("include_usage", true)
                     })
                 }
+            }
+
+            // OpenAI's Chat Completions web search models use the dedicated
+            // web_search_options request field. They do not accept the Responses
+            // API `tools: [{type: "web_search"}]` shape.
+            if (
+                params.model.tools.contains(BuiltInTools.Search) &&
+                params.model.modelId.contains("search-preview", ignoreCase = true)
+            ) {
+                put("web_search_options", buildJsonObject {})
             }
 
             // open router适配
