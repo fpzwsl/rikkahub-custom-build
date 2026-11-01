@@ -45,7 +45,25 @@ val DEFAULT_PROVIDERS = listOf(
         quotaQuery = QuotaQuery(
             enabled = true,
             url = "{{baseUrl}}/user/balance",
-            resultPath = "balance_infos[0].total_balance"
+            resultPath = "balance_infos[0].total_balance",
+            javascript = """
+                ({
+                  request: {
+                    url: "{{baseUrl}}/user/balance",
+                    method: "GET",
+                    headers: {
+                      "Authorization": "Bearer {{apiKey}}"
+                    }
+                  },
+                  extractor: function(response) {
+                    return {
+                      isValid: response.is_active !== false,
+                      remaining: response.balance_infos?.[0]?.total_balance,
+                      unit: "USD"
+                    };
+                  }
+                })
+            """.trimIndent(),
         )
     ),
     ProviderSetting.OpenAI(
@@ -58,7 +76,24 @@ val DEFAULT_PROVIDERS = listOf(
         quotaQuery = QuotaQuery(
             enabled = true,
             url = "{{baseUrl}}/users/me/balance",
-            resultPath = "data.available_balance"
+            resultPath = "data.available_balance",
+            javascript = """
+                ({
+                  request: {
+                    url: "{{baseUrl}}/users/me/balance",
+                    method: "GET",
+                    headers: {
+                      "Authorization": "Bearer {{apiKey}}"
+                    }
+                  },
+                  extractor: function(response) {
+                    return {
+                      remaining: response.data?.available_balance,
+                      unit: "USD"
+                    };
+                  }
+                })
+            """.trimIndent(),
         )
     ),
     ProviderSetting.OpenAI(
