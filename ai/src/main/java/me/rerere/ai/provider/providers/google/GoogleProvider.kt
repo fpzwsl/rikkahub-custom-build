@@ -196,7 +196,7 @@ class GoogleProvider(private val client: OkHttpClient, context: Context? = null)
         val request = transformRequest(providerSetting, requestBuilder.build())
 
         Log.i(TAG, "generateImage: ${json.encodeToString(requestBody)}")
-        return client.newCall(request).await().use { response ->
+        client.newCall(request).await().use { response ->
             val body = response.body.string()
             if (!response.isSuccessful) {
                 error("Failed to generate image: ${response.code} $body")
