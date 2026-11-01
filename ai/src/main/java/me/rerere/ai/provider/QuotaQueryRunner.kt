@@ -18,6 +18,7 @@ import kotlinx.serialization.json.jsonObject
 import me.rerere.ai.util.fetchBody
 import me.rerere.ai.util.json
 import me.rerere.ai.util.mergeCustomHeaders
+import me.rerere.common.http.await
 import me.rerere.common.http.getByKey
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -120,7 +121,7 @@ private suspend fun runJavascriptQuotaQuery(
     )
 }
 
-private fun evaluateQuotaConfig(source: String): JsonObject = evaluateQuotaJavascript(
+private suspend fun evaluateQuotaConfig(source: String): JsonObject = evaluateQuotaJavascript(
     """
     (() => {
       const config = (0, eval)(${JsonPrimitive(source)});
@@ -130,7 +131,7 @@ private fun evaluateQuotaConfig(source: String): JsonObject = evaluateQuotaJavas
     """.trimIndent()
 ).let { json.parseToJsonElement(it).jsonObject }
 
-private fun evaluateQuotaExtractor(source: String, response: JsonObject): JsonObject = evaluateQuotaJavascript(
+private suspend fun evaluateQuotaExtractor(source: String, response: JsonObject): JsonObject = evaluateQuotaJavascript(
     """
     (() => {
       const config = (0, eval)(${JsonPrimitive(source)});
@@ -142,7 +143,7 @@ private fun evaluateQuotaExtractor(source: String, response: JsonObject): JsonOb
     """.trimIndent()
 ).let { json.parseToJsonElement(it).jsonObject }
 
-private fun evaluateQuotaJavascript(code: String): String = try {
+private suspend fun evaluateQuotaJavascript(code: String): String = try {
     quickJs(Dispatchers.Default) {
         memoryLimit = 16L * 1024 * 1024
         maxStackSize = 128L * 1024
