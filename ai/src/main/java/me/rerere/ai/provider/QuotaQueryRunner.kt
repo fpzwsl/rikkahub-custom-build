@@ -79,7 +79,8 @@ private suspend fun runJavascriptQuotaQuery(
 ): ProviderQuota.Balance = withContext(Dispatchers.IO) {
     val config = evaluateQuotaConfig(query.javascript)
     val requestConfig = config["request"]?.jsonObject ?: error("JavaScript quota config.request is required")
-    val url = render(requestConfig["url"]?.jsonPrimitive?.contentOrNull ?: error("request.url is required"))
+    val url = render(requestConfig["url"]?.jsonPrimitive?.contentOrNull?.takeIf { it.isNotBlank() }
+        ?: error("JavaScript quota request.url is required"))
     val method = requestConfig["method"]?.jsonPrimitive?.contentOrNull?.uppercase() ?: "GET"
     val builder = Request.Builder().url(url).headers(setting.mergeCustomHeaders())
     requestConfig["headers"]?.jsonObject?.forEach { (name, value) ->
@@ -93,11 +94,13 @@ private suspend fun runJavascriptQuotaQuery(
     }
     val request = builder.build()
     val response = client.newCall(request).await().use { raw ->
-        val text = raw.body.string()
+        val text = raw.body?.string().orEmpty()
         val parsed = runCatching { json.parseToJsonElement(text) }.getOrNull()
         val responseObject = buildJsonObject {
             (parsed as? JsonObject)?.forEach { (key, value) -> put(key, value) }
             put("status", raw.code)
+            put("ok", raw.isSuccessful)
+            put("statusText", raw.message)
             putJsonObject("headers") { raw.headers.toMultimap().forEach { (key, values) -> put(key, values.firstOrNull().orEmpty()) } }
             put("body", text)
             if (parsed != null) put("json", parsed)
