@@ -83,7 +83,13 @@ fun ProviderQuotaText(
         result == null -> "~"
         quota == null -> "Error: ${result.exceptionOrNull()?.message}"
         else -> when (quota) {
-            is ProviderQuota.Balance -> quota.value
+            is ProviderQuota.Balance -> buildString {
+                quota.planName?.let { append(it).append(" · ") }
+                append(quota.value)
+                quota.unit?.let { append(' ').append(it) }
+                quota.invalidMessage?.let { append(" · ").append(it) }
+                quota.extra?.let { append(" · ").append(it) }
+            }
             is ProviderQuota.UsageLimits -> quota.windows.joinToString(" · ") { window ->
                 "${window.shortLabel()} ${window.usedPercent.roundToInt()}%".trim()
             }

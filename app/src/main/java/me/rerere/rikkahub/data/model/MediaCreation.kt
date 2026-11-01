@@ -62,6 +62,7 @@ data class MediaCreationAsset(
 @Serializable
 data class MediaCreationParams(
     val count: Int? = null,
+    val quality: String? = null,
     val resolution: String? = null,
     val aspectRatio: String? = null,
     val durationSeconds: Int? = null,
@@ -159,6 +160,7 @@ fun MediaCreationParams.supportedBy(capabilities: MediaGenerationCapabilities): 
         takeIf { parameter in capabilities.parameters }
     return MediaCreationParams(
         count = count.takeIfSupported(MediaGenerationParameter.COUNT),
+        quality = quality?.takeIf(String::isNotBlank).takeIfSupported(MediaGenerationParameter.QUALITY),
         resolution = resolution?.takeIf(String::isNotBlank).takeIfSupported(MediaGenerationParameter.RESOLUTION),
         aspectRatio = aspectRatio?.takeIf(String::isNotBlank).takeIfSupported(MediaGenerationParameter.ASPECT_RATIO),
         durationSeconds = durationSeconds.takeIfSupported(MediaGenerationParameter.DURATION),
@@ -180,6 +182,8 @@ fun MediaCreationParams.withRequired(
         this ?: default.takeIf { parameter in capabilities.requiredParameters }
     return MediaCreationParams(
         count = count.orRequired(MediaGenerationParameter.COUNT, defaults.count),
+        quality = quality?.takeIf(String::isNotBlank)
+            .orRequired(MediaGenerationParameter.QUALITY, defaults.quality),
         resolution = resolution?.takeIf(String::isNotBlank)
             .orRequired(MediaGenerationParameter.RESOLUTION, defaults.resolution),
         aspectRatio = aspectRatio?.takeIf(String::isNotBlank)
@@ -254,6 +258,7 @@ fun buildMediaGenerationRequest(
             }
         },
         count = supported.count,
+        quality = supported.quality,
         resolution = supported.resolution,
         aspectRatio = supported.aspectRatio,
         durationSeconds = supported.durationSeconds,

@@ -17,6 +17,7 @@ data class MediaGenerationRequest(
     val prompt: String? = null,
     val inputs: List<MediaGenerationInput> = emptyList(),
     val count: Int? = null,
+    val quality: String? = null,
     val resolution: String? = null,
     val aspectRatio: String? = null,
     val durationSeconds: Int? = null,

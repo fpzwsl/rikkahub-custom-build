@@ -10,7 +10,16 @@ import kotlin.time.Instant
  */
 sealed interface ProviderQuota {
     /** 余额。用户自定义查询（[QuotaQuery]）的结果都归到这里 */
-    data class Balance(val value: String) : ProviderQuota
+    data class Balance(
+        val value: String,
+        val isValid: Boolean? = null,
+        val invalidMessage: String? = null,
+        val unit: String? = null,
+        val planName: String? = null,
+        val total: Double? = null,
+        val used: Double? = null,
+        val extra: String? = null,
+    ) : ProviderQuota
 
     /** 订阅制的用量限制，按时间窗口统计已用比例 */
     data class UsageLimits(
@@ -42,6 +51,8 @@ data class QuotaQuery(
     // 鉴权头也在这里配置，默认值按提供商类型给
     val headers: List<CustomHeader> = listOf(CustomHeader("Authorization", "Bearer {{apiKey}}")),
     val resultPath: String = "data.total_usage",
+    /** Optional CC Switch compatible object expression with request + extractor. */
+    val javascript: String = "",
 ) {
     companion object {
         const val VARIABLE_BASE_URL = "baseUrl"

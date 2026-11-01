@@ -904,6 +904,16 @@ private fun ParamsSheet(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
+            if (MediaGenerationParameter.QUALITY in supported) {
+                TextParam(
+                    label = "Quality",
+                    value = current.quality,
+                    presets = presets.qualities,
+                    default = defaults.quality.takeIf { MediaGenerationParameter.QUALITY in required },
+                    placeholder = "Select quality",
+                    onValueChange = { update(current.copy(quality = it)) },
+                )
+            }
             if (MediaGenerationParameter.ASPECT_RATIO in supported) {
                 TextParam(
                     label = stringResource(R.string.media_creation_page_param_aspect_ratio),
@@ -948,7 +958,8 @@ private fun ParamsSheet(
                     label = stringResource(R.string.media_creation_page_param_count),
                     value = current.count?.toLong(),
                     presets = presets.counts.map { it.toLong() },
-                    default = defaults.count?.toLong().takeIf { MediaGenerationParameter.COUNT in required },
+                    default = null,
+                    showDefault = false,
                     onValueChange = { update(current.copy(count = it?.toInt())) },
                 )
             }
@@ -994,6 +1005,7 @@ private fun <T> PresetChips(
     value: T?,
     presets: List<T>,
     default: T?,
+    showDefault: Boolean = true,
     onValueChange: (T?) -> Unit,
     label: (T) -> String = { it.toString() },
     icon: (@Composable (T) -> Unit)? = null,
@@ -1002,7 +1014,7 @@ private fun <T> PresetChips(
         modifier = Modifier.selectableGroup(),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        if (default == null) {
+        if (showDefault && default == null) {
             PresetButton(
                 selected = value == null,
                 onClick = { onValueChange(null) },
@@ -1121,6 +1133,7 @@ private fun NumberParam(
     presets: List<Long>,
     onValueChange: (Long?) -> Unit,
     default: Long? = null,
+    showDefault: Boolean = true,
     allowZero: Boolean = false,
     maxDigits: Int = 3,
     special: Pair<Long, String>? = null,
@@ -1130,7 +1143,8 @@ private fun NumberParam(
             PresetChips(
                 value = value,
                 presets = presets,
-                default = default,
+                default = default.takeIf { showDefault },
+                showDefault = showDefault,
                 onValueChange = onValueChange,
                 label = { preset -> special?.takeIf { it.first == preset }?.second ?: preset.toString() },
             )

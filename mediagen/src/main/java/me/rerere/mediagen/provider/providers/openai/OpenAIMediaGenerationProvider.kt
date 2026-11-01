@@ -115,6 +115,7 @@ class OpenAIMediaGenerationProvider(
         put("model", model.modelId)
         put("prompt", request.prompt)
         request.count?.let { put("n", it) }
+        request.quality?.takeIf(String::isNotBlank)?.let { put("quality", it) }
         resolveSize(setting, model, request.resolution)?.let { put("size", it) }
         if (async) put("async", true)
     }
@@ -133,6 +134,7 @@ class OpenAIMediaGenerationProvider(
         fields["model"] = model.modelId
         fields["prompt"] = request.prompt.orEmpty()
         request.count?.let { fields["n"] = it.toString() }
+        request.quality?.takeIf(String::isNotBlank)?.let { fields["quality"] = it }
         resolveSize(setting, model, request.resolution)?.let { fields["size"] = it }
         if (async) fields["async"] = "true"
 
@@ -274,6 +276,9 @@ class OpenAIMediaGenerationProvider(
 
     private fun validate(request: MediaGenerationRequest) {
         require(!request.prompt.isNullOrBlank()) { "OpenAI image generation requires a non-empty prompt" }
+        require(request.quality == null || request.quality in setOf("auto", "low", "medium", "high", "xhigh", "max")) {
+            "OpenAI image generation quality must be auto, low, medium, high, xhigh, or max"
+        }
         require(request.aspectRatio == null) { "OpenAI image generation uses resolution instead of aspectRatio" }
         require(request.durationSeconds == null) { "OpenAI image generation does not expose duration" }
         require(request.generateAudio == null) { "OpenAI image generation does not expose generateAudio" }

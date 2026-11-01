@@ -31,6 +31,7 @@ android {
 
 dependencies {
     implementation(project(":common"))
+    implementation(libs.quickjs)
 
     // Compose
     implementation(libs.androidx.core.ktx)

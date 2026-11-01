@@ -80,6 +80,7 @@ internal const val AUTO_DURATION = -1
 /** 用户改过的参数，按「比例 · 分辨率 · 时长 · 数量」的顺序列出；都没改时为空。 */
 @Composable
 internal fun MediaCreationParams.summary(kind: MediaKind): List<String> = listOfNotNull(
+    quality,
     aspectRatio,
     resolution,
     durationSeconds?.let {
@@ -127,6 +128,7 @@ internal fun MediaCreationParams.summary(kind: MediaKind): List<String> = listOf
  * 列表里没有的可以手动输入。
  */
 internal data class MediaCreationPresets(
+    val qualities: List<String> = emptyList(),
     val resolutions: List<String> = emptyList(),
     val aspectRatios: List<String> = emptyList(),
     val durations: List<Int> = emptyList(),
@@ -136,6 +138,7 @@ internal data class MediaCreationPresets(
     val defaults: MediaCreationParams
         get() = MediaCreationParams(
             count = counts.firstOrNull(),
+            quality = qualities.firstOrNull(),
             resolution = resolutions.firstOrNull(),
             aspectRatio = aspectRatios.firstOrNull(),
             durationSeconds = durations.firstOrNull(),
@@ -144,13 +147,14 @@ internal data class MediaCreationPresets(
 
 internal fun MediaGenerationProviderSetting.presets(kind: MediaKind): MediaCreationPresets = when (this) {
     is MediaGenerationProviderSetting.OpenAI -> MediaCreationPresets(
-        resolutions = listOf("1024x1024", "1536x1024", "1024x1536"),
+        qualities = IMAGE_QUALITIES,
+        resolutions = IMAGE_RESOLUTIONS,
         counts = IMAGE_COUNTS,
     )
 
     is MediaGenerationProviderSetting.Volcengine -> when (kind) {
         // 各代 Seedream 的档位不同：5.0 pro / flash 是 1K、1.5K、2K，5.0 lite 是 2K、3K、4K，4.5 是 2K、4K
-        MediaKind.IMAGE -> MediaCreationPresets(resolutions = listOf("1K", "1.5K", "2K", "3K", "4K"))
+        MediaKind.IMAGE -> MediaCreationPresets(resolutions = IMAGE_RESOLUTIONS)
         // 智能时长是 Seedance 2.0 起才有的
         MediaKind.VIDEO -> MediaCreationPresets(
             resolutions = listOf("480p", "720p", "1080p"),
@@ -162,7 +166,7 @@ internal fun MediaGenerationProviderSetting.presets(kind: MediaKind): MediaCreat
     is MediaGenerationProviderSetting.Aliyun -> when (kind) {
         // 千问 3.0 的 size 只接受像素尺寸，万相 2.7 另外还接受 1K、2K 档位
         MediaKind.IMAGE -> MediaCreationPresets(
-            resolutions = listOf("1024x1024", "1536x1024", "1024x1536", "2048x2048"),
+            resolutions = IMAGE_RESOLUTIONS,
             counts = IMAGE_COUNTS,
         )
         MediaKind.VIDEO -> MediaCreationPresets(
@@ -182,8 +186,8 @@ internal fun MediaGenerationProviderSetting.presets(kind: MediaKind): MediaCreat
     // 背后是各家的模型，取值取的是多数模型都接受的那些
     is MediaGenerationProviderSetting.OpenRouter -> when (kind) {
         MediaKind.IMAGE -> MediaCreationPresets(
-            resolutions = listOf("1K", "2K", "4K"),
-            aspectRatios = listOf("1:1", "3:2", "2:3", "4:3", "3:4", "16:9", "9:16"),
+            resolutions = IMAGE_RESOLUTIONS,
+            aspectRatios = IMAGE_ASPECT_RATIOS,
             counts = IMAGE_COUNTS,
         )
 
@@ -196,6 +200,9 @@ internal fun MediaGenerationProviderSetting.presets(kind: MediaKind): MediaCreat
 }
 
 private val IMAGE_COUNTS = listOf(1, 2, 3, 4)
+private val IMAGE_QUALITIES = listOf("medium", "low", "high", "xhigh", "max")
+private val IMAGE_RESOLUTIONS = listOf("1K", "2K", "4K")
+private val IMAGE_ASPECT_RATIOS = listOf("1:1", "4:3", "3:4", "16:9")
 private val VIDEO_ASPECT_RATIOS = listOf("16:9", "9:16", "1:1", "4:3", "3:4", "21:9")
 private val VIDEO_DURATIONS = listOf(5, 10)
 

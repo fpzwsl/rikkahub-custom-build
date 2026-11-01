@@ -58,6 +58,7 @@ class MediaGenerationCapabilitiesTest {
 
     private fun requestWith(parameter: MediaGenerationParameter): MediaGenerationRequest = when (parameter) {
         MediaGenerationParameter.COUNT -> MediaGenerationRequest(prompt = "cat", count = 2)
+        MediaGenerationParameter.QUALITY -> MediaGenerationRequest(prompt = "cat", quality = "medium")
         MediaGenerationParameter.RESOLUTION -> MediaGenerationRequest(prompt = "cat", resolution = "1024x1024")
         MediaGenerationParameter.ASPECT_RATIO -> MediaGenerationRequest(prompt = "cat", aspectRatio = "16:9")
         MediaGenerationParameter.DURATION -> MediaGenerationRequest(prompt = "cat", durationSeconds = 5)

@@ -9,6 +9,9 @@ enum class MediaGenerationParameter {
     /** [MediaGenerationRequest.count]：一次请求的产出数量，目前只有部分图像接口支持。 */
     COUNT,
 
+    /** [MediaGenerationRequest.quality]：图像质量档位，如 `medium`、`high`。 */
+    QUALITY,
+
     /** [MediaGenerationRequest.resolution]：视频是清晰度档位（`1080P`），图像是档位或像素尺寸（`2K`、`1536x1024`）。 */
     RESOLUTION,
 
@@ -86,7 +89,12 @@ private val REFERENCE_ONLY = setOf(ImageRole.REFERENCE)
 private val ALL_IMAGE_ROLES = ImageRole.entries.toSet()
 
 private val OPENAI_IMAGE = MediaGenerationCapabilities(
-    parameters = setOf(MediaGenerationParameter.COUNT, MediaGenerationParameter.RESOLUTION),
+    parameters = setOf(
+        MediaGenerationParameter.COUNT,
+        MediaGenerationParameter.QUALITY,
+        MediaGenerationParameter.RESOLUTION,
+    ),
+    requiredParameters = setOf(MediaGenerationParameter.QUALITY),
     imageRoles = REFERENCE_ONLY,
     requiresPrompt = true,
 )

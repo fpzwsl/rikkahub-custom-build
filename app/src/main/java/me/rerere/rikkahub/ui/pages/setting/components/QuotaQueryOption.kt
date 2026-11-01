@@ -128,6 +128,26 @@ fun SettingProviderQuotaQuery(
                         modifier = Modifier.fillMaxWidth(),
                         textStyle = codeStyle,
                     )
+                    OutlinedTextField(
+                        value = query.javascript,
+                        onValueChange = { onEdit(query.copy(javascript = it)) },
+                        label = { Text("JavaScript extractor") },
+                        placeholder = {
+                            Text(
+                                "({ request: { url: '{{baseUrl}}/api/usage', method: 'GET' }, " +
+                                    "extractor: response => ({ remaining: response.json.balance }) })"
+                            )
+                        },
+                        minLines = 8,
+                        modifier = Modifier.fillMaxWidth(),
+                        textStyle = codeStyle,
+                    )
+                    Text(
+                        text = "脚本必须是用括号包裹的对象表达式。extractor(response) 可返回 " +
+                            "isValid、invalidMessage、remaining、unit、planName、total、used、extra。",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                     Text(
                         text = stringResource(
                             R.string.setting_provider_page_quota_variables,

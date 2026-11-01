@@ -108,4 +108,41 @@ class QuotaQueryRunnerTest {
         assertNull(quota)
         assertNull(captured)
     }
+
+    @Test
+    fun `javascript extractor builds request and returns structured balance`() = runTest {
+        val setting = ProviderSetting.OpenAI(
+            baseUrl = "https://api.example.com/v1",
+            quotaQuery = QuotaQuery(
+                enabled = true,
+                javascript = """
+                    ({
+                      request: {
+                        url: "{{baseUrl}}/api/usage",
+                        method: "POST",
+                        headers: {
+                          "Authorization": "Bearer {{apiKey}}",
+                          "User-Agent": "cc-switch/1.0"
+                        },
+                        body: { "scope": "default" }
+                      },
+                      extractor: function(response) {
+                        return {
+                          isValid: !response.error,
+                          remaining: response.balance,
+                          unit: "USD",
+                          extra: response.plan
+                        };
+                      }
+                    })
+                """.trimIndent(),
+            ),
+        )
+        val quota = client("""{"balance":12.5,"plan":"pro"}""").runQuotaQuery(setting) { "sk-1" }
+        assertEquals("https://api.example.com/v1/api/usage", captured!!.url.toString())
+        assertEquals("POST", captured!!.method)
+        assertEquals("Bearer sk-1", captured!!.header("Authorization"))
+        assertEquals("cc-switch/1.0", captured!!.header("User-Agent"))
+        assertEquals(ProviderQuota.Balance("12.50", isValid = true, unit = "USD", extra = "pro"), quota)
+    }
 }
