@@ -196,7 +196,7 @@ class GoogleProvider(private val client: OkHttpClient, context: Context? = null)
         val request = transformRequest(providerSetting, requestBuilder.build())
 
         Log.i(TAG, "generateImage: ${json.encodeToString(requestBody)}")
-        client.newCall(request).await().use { response ->
+        return client.newCall(request).await().use { response ->
             val body = response.body.string()
             if (!response.isSuccessful) {
                 error("Failed to generate image: ${response.code} $body")
@@ -311,7 +311,7 @@ class GoogleProvider(private val client: OkHttpClient, context: Context? = null)
         }
 
         Log.i(TAG, "submitCompatibleImageTask: $url model=$modelId hasReference=${images.isNotEmpty()}")
-        client.newCall(request).await().use { response ->
+        return client.newCall(request).await().use { response ->
             val body = response.body.string()
             if (!response.isSuccessful) error("Failed to submit image task: ${response.code} $body")
             val bodyJson = json.parseToJsonElement(body).jsonObject
