@@ -129,6 +129,7 @@ fun ChatInput(
     onUpdateChatModel: (Model) -> Unit,
     onUpdateAssistant: (Assistant) -> Unit,
     onMoreClick: () -> Unit,
+    onSearchClick: () -> Unit = onMoreClick,
     onCancelClick: () -> Unit,
     onSendClick: () -> Unit,
     onLongSendClick: () -> Unit,
@@ -279,17 +280,12 @@ fun ChatInput(
                                 modifier = Modifier,
                             )
 
-                            // Reasoning
-                            if (chatModel?.abilities?.contains(ModelAbility.REASONING) == true) {
-                                ReasoningButton(
-                                    reasoningLevel = assistant.reasoningLevel,
-                                    onUpdateReasoningLevel = {
-                                        onUpdateAssistant(assistant.copy(reasoningLevel = it))
-                                    },
-                                    onlyIcon = true,
+                            ActionIconButton(onClick = onSearchClick) {
+                                Icon(
+                                    imageVector = HugeIcons.GlobalSearch,
+                                    contentDescription = stringResource(R.string.use_web_search),
                                 )
                             }
-
                         }
 
                         ActionIconButton(
@@ -298,6 +294,16 @@ fun ChatInput(
                             Icon(
                                 imageVector = HugeIcons.Add01,
                                 contentDescription = stringResource(R.string.more_options)
+                            )
+                        }
+
+                        if (chatModel?.abilities?.contains(ModelAbility.REASONING) == true) {
+                            ReasoningButton(
+                                reasoningLevel = assistant.reasoningLevel,
+                                onUpdateReasoningLevel = {
+                                    onUpdateAssistant(assistant.copy(reasoningLevel = it))
+                                },
+                                onlyIcon = true,
                             )
                         }
 

@@ -289,6 +289,7 @@ private fun ChatPageContent(
     var previewMode by rememberSaveable { mutableStateOf(false) }
     val hazeState = rememberHazeState()
     var showFilesSheet by remember { mutableStateOf(false) }
+    var openSearchInFilesSheet by remember { mutableStateOf(false) }
     val attachmentPickerActions = rememberChatAttachmentPickerActions(
         inputState = inputState,
         setting = setting,
@@ -389,6 +390,11 @@ private fun ChatPageContent(
                     onUpdateChatModel = vm::setChatModel,
                     onUpdateAssistant = vm::updateAssistant,
                     onMoreClick = {
+                        openSearchInFilesSheet = false
+                        showFilesSheet = true
+                    },
+                    onSearchClick = {
+                        openSearchInFilesSheet = true
                         showFilesSheet = true
                     },
                 )
@@ -471,6 +477,7 @@ private fun ChatPageContent(
                 vm = vm,
                 attachmentPickerActions = attachmentPickerActions,
                 onDismiss = { showFilesSheet = false },
+                openSearch = openSearchInFilesSheet,
             )
         }
     }
@@ -486,6 +493,7 @@ private fun ChatFilesPickerSheet(
     vm: ChatVM,
     attachmentPickerActions: ChatAttachmentPickerActions,
     onDismiss: () -> Unit,
+    openSearch: Boolean,
 ) {
     var showCompressDialog by remember { mutableStateOf(false) }
 
@@ -529,6 +537,7 @@ private fun ChatFilesPickerSheet(
             onPickAudio = attachmentPickerActions.onPickAudio,
             onPickFile = attachmentPickerActions.onPickFile,
             onSketch = attachmentPickerActions.onSketch,
+            openSearch = openSearch,
         )
     }
 }

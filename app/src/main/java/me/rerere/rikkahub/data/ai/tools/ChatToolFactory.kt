@@ -6,6 +6,7 @@ import kotlinx.serialization.json.jsonObject
 import me.rerere.ai.core.Tool
 import me.rerere.ai.provider.BuiltInTools
 import me.rerere.ai.provider.Model
+import me.rerere.ai.provider.ProviderSetting
 import me.rerere.ai.ui.UIMessagePart
 import me.rerere.rikkahub.data.ai.mcp.McpManager
 import me.rerere.rikkahub.data.ai.tools.local.LocalTools
@@ -28,11 +29,17 @@ private const val TOOL_OUTPUT_PREVIEW_CHARS = 4 * 1024
 // 搜索结果的体积由用户设置的结果数决定，且结果列表 UI 与引用跳转都依赖完整的 JSON 结构，不参与截断
 private val TOOLS_WITHOUT_OUTPUT_TRUNCATION = setOf("search_web")
 
-internal fun shouldUseExternalWebSearch(assistant: Assistant, model: Model): Boolean {
+internal fun shouldUseExternalWebSearch(
+    assistant: Assistant,
+    model: Model,
+    providerSetting: ProviderSetting? = null,
+): Boolean {
     // Built-in search and the local search_web function are alternative search backends.
     // Keeping both in the same request makes older Gemini APIs reject the tool set, and
     // the built-in backend already covers web search when it is enabled on the model.
-    return assistant.enableWebSearch && BuiltInTools.Search !in model.tools
+    val deepSeekProvider = providerSetting is ProviderSetting.OpenAI &&
+        providerSetting.baseUrl.contains("deepseek.com", ignoreCase = true)
+    return assistant.enableWebSearch && (BuiltInTools.Search !in model.tools || deepSeekProvider)
 }
 
 class InvalidMcpServerNamesException(val names: List<String>) :
@@ -52,6 +59,7 @@ class ChatToolFactory(
         settings: Settings,
         assistant: Assistant,
         model: Model,
+        providerSetting: ProviderSetting? = null,
         workspaceCwd: String? = null,
     ): List<Tool> {
         val workspaceTools = createWorkspaceToolsIfReady(assistant.workspaceId?.toString(), workspaceCwd)
@@ -59,8 +67,11 @@ class ChatToolFactory(
             if (assistant.enableMemory) {
                 addAll(buildMemoryTools(memoryRepository, assistant.memoryId))
             }
-            if (shouldUseExternalWebSearch(assistant, model)) {
-                addAll(createSearchTools(settings))
+            if (shouldUseExternalWebSearch(assistant, model, providerSetting)) {
+                val deepSeekApiKey = (providerSetting as? ProviderSetting.OpenAI)
+                    ?.takeIf { it.baseUrl.contains("deepseek.com", ignoreCase = true) }
+                    ?.apiKey
+                addAll(createSearchTools(settings, deepSeekApiKey))
             }
             addAll(localTools.getTools(assistant.localTools))
             if (assistant.enableRecentChatsReference) {

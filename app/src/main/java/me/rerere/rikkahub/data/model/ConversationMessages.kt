@@ -51,12 +51,23 @@ internal fun Conversation.withTranslation(messageId: Uuid, translation: String?)
     return upsertMessage(node.id, node.messages.first { it.id == messageId }.copy(translation = translation))
 }
 
-/** 切换节点选中的分支，调用方负责校验节点和下标 */
-internal fun Conversation.selectBranch(nodeId: Uuid, selectIndex: Int): Conversation = copy(
-    messageNodes = messageNodes.map { node ->
-        if (node.id == nodeId) node.copy(selectIndex = selectIndex) else node
-    }
-)
+/**
+ * 切换节点选中的分支；后续节点存在同编号分支时一并切换，否则保留原选择。
+ * 调用方负责校验节点和下标。
+ */
+internal fun Conversation.selectBranch(nodeId: Uuid, selectIndex: Int): Conversation {
+    val targetIndex = messageNodes.indexOfFirst { it.id == nodeId }
+    return copy(
+        messageNodes = messageNodes.mapIndexed { index, node ->
+            when {
+                index == targetIndex -> node.copy(selectIndex = selectIndex)
+                index > targetIndex && selectIndex in node.messages.indices ->
+                    node.copy(selectIndex = selectIndex)
+                else -> node
+            }
+        }
+    )
+}
 
 internal fun Conversation.withNodeFavorite(nodeId: Uuid, favorite: Boolean): Conversation = copy(
     messageNodes = messageNodes.map { node ->

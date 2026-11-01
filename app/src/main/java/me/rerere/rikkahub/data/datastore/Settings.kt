@@ -13,7 +13,6 @@ import me.rerere.rikkahub.data.ai.prompts.DEFAULT_SUGGESTION_PROMPT
 import me.rerere.rikkahub.data.ai.prompts.DEFAULT_TITLE_PROMPT
 import me.rerere.rikkahub.data.ai.prompts.DEFAULT_TRANSLATION_PROMPT
 import me.rerere.rikkahub.data.model.Assistant
-import me.rerere.rikkahub.data.model.Avatar
 import me.rerere.rikkahub.data.model.Lorebook
 import me.rerere.rikkahub.data.model.PromptInjection
 import me.rerere.rikkahub.data.model.QuickMessage
@@ -134,9 +133,7 @@ enum class ConversationSortOrder {
 
 @Serializable
 data class DisplaySetting(
-    val userAvatar: Avatar = Avatar.Dummy,
     val userNickname: String = "",
-    val showUserAvatar: Boolean = true,
     val showAssistantBubble: Boolean = false,
     val bubbleOpacity: Float = 1.0f,
     val showModelIcon: Boolean = true,

@@ -38,6 +38,9 @@ import androidx.compose.material3.ToggleButton
 import androidx.compose.material3.ToggleButtonDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -74,9 +77,13 @@ enum class SearchMode {
 
 private val modeShapes = SearchMode.entries.map { it.shape() }
 
-internal fun searchModeOf(enableSearch: Boolean, model: Model?): SearchMode = when {
+internal fun searchModeOf(
+    enableSearch: Boolean,
+    model: Model?,
+    builtInSearchAvailable: Boolean = true,
+): SearchMode = when {
     // 模型已开启内置搜索（可能是不支持的模型残留的孤儿状态）
-    model?.tools?.contains(BuiltInTools.Search) == true -> SearchMode.BUILT_IN
+    builtInSearchAvailable && model?.tools?.contains(BuiltInTools.Search) == true -> SearchMode.BUILT_IN
     enableSearch -> SearchMode.LOCAL
     else -> SearchMode.OFF
 }
@@ -87,11 +94,12 @@ internal fun SearchPickerListItem(
     enableSearch: Boolean,
     settings: Settings,
     model: Model?,
+    builtInSearchAvailable: Boolean,
     shapes: ListItemShapes,
     modifier: Modifier = Modifier,
     onClick: () -> Unit,
 ) {
-    val mode = searchModeOf(enableSearch, model)
+    val mode = searchModeOf(enableSearch, model, builtInSearchAvailable)
     val currentService = settings.searchServices.getOrNull(settings.searchServiceSelected)
 
     SegmentedListItem(
@@ -135,6 +143,7 @@ internal fun SearchPickerPage(
     enableSearch: Boolean,
     settings: Settings,
     model: Model?,
+    builtInSearchAvailable: Boolean,
     onUpdateSearchMode: (SearchMode) -> Unit,
     onSelectProvider: () -> Unit,
     onBack: () -> Unit,
@@ -157,6 +166,7 @@ internal fun SearchPickerPage(
             enableSearch = enableSearch,
             settings = settings,
             model = model,
+            builtInSearchAvailable = builtInSearchAvailable,
             onUpdateSearchMode = onUpdateSearchMode,
             onSelectProvider = onSelectProvider,
             onDismiss = onDismissAll,
@@ -169,16 +179,20 @@ private fun SearchPicker(
     enableSearch: Boolean,
     settings: Settings,
     model: Model?,
+    builtInSearchAvailable: Boolean,
     onUpdateSearchMode: (SearchMode) -> Unit,
     onSelectProvider: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     val navBackStack = LocalNavController.current
 
-    val currentMode = searchModeOf(enableSearch, model)
+    var selectedMode by remember(model?.id, enableSearch, model?.tools, builtInSearchAvailable) {
+        mutableStateOf(searchModeOf(enableSearch, model, builtInSearchAvailable))
+    }
+    val currentMode = selectedMode
     // 内置搜索由用户在聊天页手动控制。模型设置中的工具开关仍作为初始值，
     // 具体请求是否支持该工具由对应的提供商协议处理。
-    val showModelSearch = model != null
+    val showModelSearch = model != null && builtInSearchAvailable
     val modes = buildList {
         add(SearchMode.OFF)
         add(SearchMode.LOCAL)
@@ -244,7 +258,12 @@ private fun SearchPicker(
                 )
                 ToggleButton(
                     checked = selected,
-                    onCheckedChange = { if (!selected) onUpdateSearchMode(mode) },
+                        onCheckedChange = {
+                            if (!selected) {
+                                selectedMode = mode
+                                onUpdateSearchMode(mode)
+                            }
+                        },
                     modifier = Modifier
                         .weight(weight)
                         .heightIn(min = 52.dp)

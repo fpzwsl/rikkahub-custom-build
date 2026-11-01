@@ -103,7 +103,6 @@ import me.rerere.rikkahub.ui.pages.extensions.workspace.WorkspaceTerminalPage
 import me.rerere.workspace.WorkspaceStorageArea
 import me.rerere.rikkahub.ui.pages.favorite.FavoritePage
 import me.rerere.rikkahub.ui.pages.history.HistoryPage
-import me.rerere.rikkahub.ui.pages.imggen.ImageGenPage
 import me.rerere.rikkahub.ui.pages.log.LogPage
 import me.rerere.rikkahub.ui.pages.mediacreation.MediaCreationPage
 import me.rerere.rikkahub.ui.pages.mediacreation.MediaCreationSessionsPage
@@ -418,10 +417,6 @@ class RouteActivity : ComponentActivity() {
 
                             entry<Screen.Backup> {
                                 BackupPage()
-                            }
-
-                            entry<Screen.ImageGen> {
-                                ImageGenPage()
                             }
 
                             entry<Screen.MediaCreationSessions> {

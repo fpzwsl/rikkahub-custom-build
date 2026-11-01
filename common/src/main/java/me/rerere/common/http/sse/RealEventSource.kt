@@ -91,6 +91,14 @@ internal class RealEventSource(
             val body = response.body
 
             if (!body.isEventStream()) {
+                if (body.contentType()?.type == "application" && body.contentType()?.subtype == "json") {
+                    val data = body.string()
+                    if (data.isNotBlank()) {
+                        listener.onEvent(this, null, null, data)
+                        listener.onClosed(this)
+                        return
+                    }
+                }
                 listener.onFailure(
                     this,
                     IllegalStateException("Invalid content-type: ${body.contentType()}"),

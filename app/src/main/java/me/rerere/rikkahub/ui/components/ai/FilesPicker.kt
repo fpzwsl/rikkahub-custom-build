@@ -52,6 +52,7 @@ import kotlin.uuid.Uuid
 import kotlinx.coroutines.Job
 import me.rerere.ai.provider.Model
 import me.rerere.ai.provider.ProviderSetting
+import me.rerere.ai.provider.supportsBuiltInSearch
 import me.rerere.hugeicons.HugeIcons
 import me.rerere.hugeicons.stroke.ArrowLeft01
 import me.rerere.hugeicons.stroke.ArrowRight01
@@ -122,6 +123,7 @@ internal fun FilesPicker(
     onPickAudio: () -> Unit,
     onPickFile: () -> Unit,
     onSketch: () -> Unit,
+    openSearch: Boolean = false,
 ) {
     val settings = LocalSettings.current
     val provider = chatModel?.findProvider(providers = settings.providers)
@@ -135,7 +137,9 @@ internal fun FilesPicker(
     val showCwd = boundWorkspace != null && boundWorkspace.shellStatus == WorkspaceShellStatus.READY.name
     var showCwdSheet by remember { mutableStateOf(false) }
 
-    var page by remember { mutableStateOf(FilesPickerPage.MAIN) }
+    var page by remember(openSearch) {
+        mutableStateOf(if (openSearch) FilesPickerPage.SEARCH else FilesPickerPage.MAIN)
+    }
     // 在子页面时，返回键回到上一级而不是关闭 sheet
     BackHandler(enabled = page != FilesPickerPage.MAIN) {
         page = page.parent
@@ -174,6 +178,7 @@ internal fun FilesPicker(
                 enableSearch = assistant.enableWebSearch,
                 settings = settings,
                 model = chatModel,
+                builtInSearchAvailable = provider != null && chatModel != null && provider.supportsBuiltInSearch(chatModel),
                 onUpdateSearchMode = onUpdateSearchMode,
                 onSelectProvider = { page = FilesPickerPage.SEARCH_PROVIDER },
                 onBack = { page = FilesPickerPage.MAIN },
@@ -225,6 +230,7 @@ internal fun FilesPicker(
                         enableSearch = assistant.enableWebSearch,
                         settings = settings,
                         model = chatModel,
+                        builtInSearchAvailable = provider != null && chatModel != null && provider.supportsBuiltInSearch(chatModel),
                         shapes = ListItemDefaults.segmentedShapes(index = itemIndex++, count = itemCount),
                         onClick = { page = FilesPickerPage.SEARCH },
                     )

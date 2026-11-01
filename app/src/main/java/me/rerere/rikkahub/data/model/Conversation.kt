@@ -53,6 +53,18 @@ data class Conversation(
             return messageNodes.map { node -> node.messages[node.selectIndex] }
         }
 
+    fun deriveTitleFromFirstUserMessage(): String {
+        val text = currentMessages
+            .firstOrNull { it.role == MessageRole.USER }
+            ?.toText()
+            ?.trim()
+            .orEmpty()
+        if (text.isEmpty()) return ""
+
+        val endIndex = text.indexOfFirst { it == '\n' || it == '\r' || it in "。！？.!?" }
+        return if (endIndex == -1) text else text.take(endIndex + 1).trim()
+    }
+
     fun getMessageNodeByMessageId(messageId: Uuid): MessageNode? {
         return messageNodes.firstOrNull { node -> node.messages.any { it.id == messageId } }
     }

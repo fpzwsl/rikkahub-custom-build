@@ -185,9 +185,15 @@ class ResponseAPI(
             ) {
                 Log.d(TAG, "onEvent: $id/$type $data")
                 try {
-                    val result = decoder.accept(SseEvent(id = id, event = type, data = data))
-                    sendChunks(result.chunks)
-                    if (result.completed) close()
+                    val payload = runCatching { json.parseToJsonElement(data).jsonObjectOrNull }.getOrNull()
+                    if (payload != null && !payload.containsKey("type") && payload.containsKey("output")) {
+                        sendChunks(parseResponseOutput(payload).toStreamChunks())
+                        close()
+                    } else {
+                        val result = decoder.accept(SseEvent(id = id, event = type, data = data))
+                        sendChunks(result.chunks)
+                        if (result.completed) close()
+                    }
                 } catch (e: Throwable) {
                     close(e)
                 }
@@ -314,7 +320,7 @@ class ResponseAPI(
                     // built-in tools
                     params.model.tools.forEach { builtInTool ->
                         when (builtInTool) {
-                            BuiltInTools.Search -> {
+                            BuiltInTools.Search -> if (capabilities.supportsWebSearch) {
                                 add(buildJsonObject {
                                     put("type", "web_search")
                                 })
@@ -713,6 +719,46 @@ class ResponseAPI(
     }
 }
 
+private fun TextGenerationResult.toStreamChunks(): List<StreamChunk> = buildList {
+    message.parts.forEachIndexed { index, part ->
+        val partId = "${id.ifBlank { "response" }}:$index"
+        when (part) {
+            is UIMessagePart.Text -> {
+                add(StreamChunk.TextStart(partId, part.metadata))
+                add(StreamChunk.TextDelta(partId, part.text, part.metadata))
+                add(StreamChunk.TextEnd(partId))
+            }
+
+            is UIMessagePart.Reasoning -> {
+                add(StreamChunk.ReasoningStart(partId, part.metadata, part.reasoningType))
+                add(StreamChunk.ReasoningDelta(partId, part.reasoning, part.metadata, part.reasoningType))
+                add(StreamChunk.ReasoningEnd(partId, part.metadata))
+            }
+
+            is UIMessagePart.Image -> {
+                add(StreamChunk.ImageStart(partId, metadata = part.metadata))
+                add(StreamChunk.ImageSnapshot(partId, part.url, part.metadata))
+                add(StreamChunk.ImageEnd(partId))
+            }
+
+            is UIMessagePart.ServerTool -> {
+                add(StreamChunk.ServerToolStart(part.toolCallId, part.toolName, part.input, part.metadata))
+                add(StreamChunk.ServerToolEnd(
+                    id = part.toolCallId,
+                    input = part.input,
+                    output = part.output,
+                    status = part.status,
+                    metadata = part.metadata,
+                ))
+            }
+
+            else -> Unit
+        }
+    }
+    usage?.let { add(StreamChunk.Usage(it)) }
+    add(StreamChunk.Finish(finishReason, id, model))
+}
+
 // function_call_output.output 可以是字符串，也可以是 input_text 等内容数组
 internal fun JsonObject.functionCallOutputText(): String = when (val output = get("output")) {
     null, is JsonNull -> ""
@@ -783,6 +829,7 @@ internal data class ResponseProviderCapabilities(
     val supportsSamplingParams: Boolean = true,
     // 非推理模型也请求加密推理内容：不保存会话时，自带推理的模型要靠它接上多轮推理
     val alwaysIncludeEncryptedContent: Boolean = false,
+    val supportsWebSearch: Boolean = true,
     // 推理档位对应的 reasoning.effort（参数依次是档位、模型 id），返回 null 时不带
     val reasoningEffort: (
         ReasoningLevel,
@@ -792,6 +839,7 @@ internal data class ResponseProviderCapabilities(
 
 internal fun resolveResponseProviderCapabilities(host: String): ResponseProviderCapabilities {
     return when (host) {
+        "api.deepseek.com" -> ResponseProviderCapabilities(supportsWebSearch = false)
         "ark.cn-beijing.volces.com" -> ResponseProviderCapabilities(
             supportsReasoningSummary = false,
             supportEncryptedContent = false

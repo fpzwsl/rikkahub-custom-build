@@ -33,6 +33,7 @@ internal class GoogleStreamDecoder(
     private var finishReason: String? = null
     private var finished = false
     private var toolSequence = 0
+    private var receivedContent = false
 
     override fun accept(event: SseEvent): DecodeResult {
         if (finished) return DecodeResult(completed = true)
@@ -48,6 +49,7 @@ internal class GoogleStreamDecoder(
             val candidate = jsonData["candidates"]?.jsonArray?.firstOrNull()?.jsonObject ?: return@buildList
             candidate["finishReason"]?.jsonPrimitive?.contentOrNull?.let { finishReason = it }
             val content = candidate["content"]?.jsonObject ?: return@buildList
+            if (content["parts"]?.jsonArray?.isNotEmpty() == true) receivedContent = true
             val message = parseMessage(content, candidate["groundingMetadata"] as? JsonObject)
             addAll(streamState.append(message, responseId))
         }
@@ -59,6 +61,9 @@ internal class GoogleStreamDecoder(
     private fun finish(): List<StreamChunk> {
         if (finished) return emptyList()
         finished = true
+        if (!receivedContent) {
+            error("Gemini returned no response content${finishReason?.let { " (finishReason=$it)" } ?: ""}")
+        }
         return streamState.finish(finishReason, responseId, model)
     }
 

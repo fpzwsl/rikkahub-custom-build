@@ -673,7 +673,7 @@ class ChatService(
     // 模型不支持工具调用时，搜索和 MCP 工具都不会生效，提醒一下
     private fun warnIfToolsUnavailable(turn: ChatTurnContext, conversationId: Uuid) {
         if (ModelAbility.TOOL in turn.model.abilities) return
-        if (shouldUseExternalWebSearch(turn.assistant, turn.model) ||
+        if (shouldUseExternalWebSearch(turn.assistant, turn.model, turn.providerSetting) ||
             mcpManager.getAllAvailableTools(turn.assistant).isNotEmpty()
         ) {
             addError(
@@ -727,24 +727,20 @@ class ChatService(
             // 关掉自动生成后只跳过对话结束时的自动调用，手动重新生成照常执行
             if (!force && !settings.enableAutoTitle) return@withLoadedSession
 
-            runCatching {
-                val title = metaGenerator.generateTitle(settings, conversation)
-                // 只写标题这一列：这时可能已经在生成下一轮，不能把还没生成完的内容一起落库。
-                // 生成期间会话被删除的话不写入
-                session.updateMetadata(
-                    transform = { it.copy(title = title) },
-                    persist = { conversationRepo.updateTitle(conversationId, title) },
-                    expectedIncarnation = incarnation,
-                )
-            }.onFailure {
-                it.printStackTrace()
-                addError(
-                    error = it,
-                    conversationId = conversationId,
-                    title = context.getString(R.string.error_title_generate_title),
-                    solution = ChatErrorSolution.CheckFastModelSettings,
-                )
-            }
+            val title = runCatching { metaGenerator.generateTitle(settings, conversation) }
+                .getOrNull()
+                ?.trim()
+                ?.takeIf(String::isNotBlank)
+                ?: conversation.deriveTitleFromFirstUserMessage()
+            if (title.isBlank()) return@withLoadedSession
+
+            // 只写标题这一列：这时可能已经在生成下一轮，不能把还没生成完的内容一起落库。
+            // 生成期间会话被删除的话不写入
+            session.updateMetadata(
+                transform = { it.copy(title = title) },
+                persist = { conversationRepo.updateTitle(conversationId, title) },
+                expectedIncarnation = incarnation,
+            )
         }
     }
 
@@ -1143,13 +1139,19 @@ class ChatService(
         conversationId: Uuid,
         messageId: Uuid,
         parts: List<UIMessagePart>
-    ) {
-        if (parts.isEmptyInputMessage()) return
+    ): Boolean {
+        if (parts.isEmptyInputMessage()) return false
         val settings = settingsStore.awaitLoaded()
+        var editedUserMessage = false
 
         mutate(conversationId) { conversation ->
+            editedUserMessage = conversation.getMessageNodeByMessageId(messageId)
+                ?.messages
+                ?.firstOrNull { it.id == messageId }
+                ?.role == MessageRole.USER
             conversation.editMessage(messageId, parts.replaceUserRegexes(settings.getStoredAssistantOf(conversation)))
         }
+        return editedUserMessage
     }
 
     suspend fun forkConversationAtMessage(
@@ -1181,7 +1183,6 @@ class ChatService(
             if (selectIndex !in targetNode.messages.indices) {
                 throw BadRequestException("Invalid selectIndex")
             }
-            if (targetNode.selectIndex == selectIndex) return@mutate conversation
             conversation.selectBranch(nodeId, selectIndex)
         }
     }

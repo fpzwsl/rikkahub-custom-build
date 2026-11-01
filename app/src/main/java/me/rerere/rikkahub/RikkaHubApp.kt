@@ -63,16 +63,18 @@ class RikkaHubApp : Application() {
     override fun onCreate() {
         super.onCreate()
         // Restore files and settings before eager Koin singletons or workers can access them.
-        try {
-            val restored = runBlocking(Dispatchers.IO) {
-                BackupManager.applyPendingRestore(this@RikkaHubApp, JsonInstant)
+        if (BackupManager.hasPendingRestore(this)) {
+            try {
+                val restored = runBlocking(Dispatchers.IO) {
+                    BackupManager.applyPendingRestore(this@RikkaHubApp, JsonInstant)
+                }
+                if (restored) {
+                    Toast.makeText(this, R.string.backup_page_restore_success, Toast.LENGTH_LONG).show()
+                }
+            } catch (e: RestoreFailedException) {
+                Log.e(TAG, "Backup restore rolled back", e)
+                Toast.makeText(this, "备份恢复失败，已保留原数据。请重新导入备份。", Toast.LENGTH_LONG).show()
             }
-            if (restored) {
-                Toast.makeText(this, R.string.backup_page_restore_success, Toast.LENGTH_LONG).show()
-            }
-        } catch (e: RestoreFailedException) {
-            Log.e(TAG, "Backup restore rolled back", e)
-            Toast.makeText(this, "备份恢复失败，已保留原数据。请重新导入备份。", Toast.LENGTH_LONG).show()
         }
         startKoin {
             androidLogger()

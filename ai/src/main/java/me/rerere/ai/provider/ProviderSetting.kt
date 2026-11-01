@@ -48,6 +48,12 @@ val ProviderSetting.supportsBuiltInSearch: Boolean
         is ProviderSetting.Account -> true
     }
 
+fun ProviderSetting.supportsBuiltInSearch(model: Model): Boolean =
+    supportsBuiltInSearch && when (this) {
+        is ProviderSetting.OpenAI -> true
+        else -> true
+    }
+
 @Serializable
 sealed class ProviderSetting {
     abstract val id: Uuid

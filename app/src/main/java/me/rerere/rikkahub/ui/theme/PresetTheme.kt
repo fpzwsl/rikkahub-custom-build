@@ -30,15 +30,17 @@ val PresetThemes by lazy {
         SpringThemePreset,
         AutumnThemePreset,
         BlackThemePreset,
-        MinimalThemePreset,
         ClaudeThemePreset,
         DeepSeekThemePreset,
-        RightCodeThemePreset,
     )
 }
 
+private val LegacyPresetThemes by lazy {
+    listOf(MinimalThemePreset, RightCodeThemePreset)
+}
+
 fun findPresetTheme(id: String): PresetTheme {
-    return PresetThemes.find { it.id == id } ?: SakuraThemePreset
+    return (PresetThemes + LegacyPresetThemes).find { it.id == id } ?: SakuraThemePreset
 }
 
 fun findThemeById(id: String, customThemes: List<CustomTheme>): PresetTheme? {

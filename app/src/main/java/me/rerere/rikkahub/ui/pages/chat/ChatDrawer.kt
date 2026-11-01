@@ -60,7 +60,6 @@ import me.rerere.hugeicons.stroke.ChartColumn
 import me.rerere.hugeicons.stroke.Delete01
 import me.rerere.hugeicons.stroke.Folder01
 import me.rerere.hugeicons.stroke.FolderAdd
-import me.rerere.hugeicons.stroke.Image02
 import me.rerere.hugeicons.stroke.ImageToVideo
 import me.rerere.hugeicons.stroke.InLove
 import me.rerere.hugeicons.stroke.LanguageCircle
@@ -69,7 +68,6 @@ import me.rerere.hugeicons.stroke.PencilEdit01
 import me.rerere.hugeicons.stroke.Search01
 import me.rerere.hugeicons.stroke.Settings03
 import me.rerere.hugeicons.stroke.Sorting01
-import me.rerere.hugeicons.stroke.Sparkles
 import me.rerere.hugeicons.stroke.Tick01
 import me.rerere.hugeicons.stroke.TransactionHistory
 import me.rerere.rikkahub.R
@@ -83,7 +81,6 @@ import me.rerere.rikkahub.data.repository.ConversationRepository
 import me.rerere.rikkahub.ui.components.ai.AssistantPicker
 import me.rerere.rikkahub.ui.components.ui.BackupReminderCard
 import me.rerere.rikkahub.ui.components.ui.Greeting
-import me.rerere.rikkahub.ui.components.ui.UIAvatar
 import androidx.compose.ui.draw.clip
 import me.rerere.rikkahub.ui.context.LocalToaster
 import me.rerere.rikkahub.ui.context.Navigator
@@ -162,9 +159,6 @@ fun ChatDrawerContent(
     var folderToRename by remember { mutableStateOf<Folder?>(null) }
     var folderToDelete by remember { mutableStateOf<Folder?>(null) }
 
-    // Menu popup 状态
-    var showMenuPopup by remember { mutableStateOf(false) }
-
     // 矮屏（如手表、横屏手机）上顶部固定会把会话列表挤没，改为跟随列表一起滚动
     val windowHeight = LocalWindowInfo.current.containerDpSize.height
     val scrollableHeader = windowHeight < 640.dp
@@ -180,61 +174,40 @@ fun ChatDrawerContent(
                 onClick = { navController.navigate(Screen.Backup) },
             )
 
-            // 用户头像和昵称自定义区域
-            Row(
+            // 用户昵称自定义区域
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 8.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
-                UIAvatar(
-                    name = settings.displaySetting.userNickname.ifBlank { stringResource(R.string.user_default_name) },
-                    value = settings.displaySetting.userAvatar,
-                    onUpdate = { newAvatar ->
-                        vm.updateSettings {
-                            it.copy(
-                                displaySetting = it.displaySetting.copy(
-                                    userAvatar = newAvatar
-                                )
-                            )
-                        }
-                    },
-                    modifier = Modifier.size(50.dp),
-                )
-
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    ) {
-                        Text(
-                            text = settings.displaySetting.userNickname.ifBlank { stringResource(R.string.user_default_name) },
-                            style = MaterialTheme.typography.titleMedium,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.clickable {
+                    Text(
+                        text = settings.displaySetting.userNickname.ifBlank { stringResource(R.string.user_default_name) },
+                        style = MaterialTheme.typography.titleMedium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.clickable {
+                            nicknameEditState.open(settings.displaySetting.userNickname)
+                        }
+                    )
+
+                    Icon(
+                        imageVector = HugeIcons.PencilEdit01,
+                        contentDescription = "Edit",
+                        modifier = Modifier
+                            .onClick {
                                 nicknameEditState.open(settings.displaySetting.userNickname)
                             }
-                        )
-
-                        Icon(
-                            imageVector = HugeIcons.PencilEdit01,
-                            contentDescription = "Edit",
-                            modifier = Modifier
-                                .onClick {
-                                    nicknameEditState.open(settings.displaySetting.userNickname)
-                                }
-                                .size(LocalTextStyle.current.fontSize.toDp())
-                        )
-                    }
-                    Greeting(
-                        style = MaterialTheme.typography.labelMedium,
+                            .size(LocalTextStyle.current.fontSize.toDp())
                     )
                 }
+                Greeting(
+                    style = MaterialTheme.typography.labelMedium,
+                )
             }
 
             DrawerActions(navController = navController)
@@ -374,33 +347,6 @@ fun ChatDrawerContent(
                         navController.navigate(Screen.Assistant)
                     },
                 )
-
-                Box {
-                    DrawerAction(
-                        icon = {
-                            Icon(HugeIcons.Sparkles, "Menu")
-                        },
-                        label = {
-                            Text(stringResource(R.string.menu))
-                        },
-                        onClick = {
-                            showMenuPopup = true
-                        },
-                    )
-                    DropdownMenu(
-                        expanded = showMenuPopup,
-                        onDismissRequest = { showMenuPopup = false }
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.chat_page_menu_image_generation)) },
-                            leadingIcon = { Icon(HugeIcons.Image02, null) },
-                            onClick = {
-                                showMenuPopup = false
-                                navController.navigate(Screen.ImageGen)
-                            }
-                        )
-                    }
-                }
 
                 DrawerAction(
                     icon = {
