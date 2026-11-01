@@ -219,6 +219,12 @@ fun ChatMessage(
             }
         }
 
+        // 重新生成或编辑消息会在同一个节点下产生多个版本；显示当前版本并允许切换。
+        ChatMessageBranchSelector(
+            node = node,
+            onUpdate = onUpdate,
+        )
+
         EditedFilesList(
             parts = message.parts,
             assistant = assistant,
